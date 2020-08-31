@@ -3,13 +3,14 @@ import sys
 sys.path.append('../data')
 sys.path.append('../networks')
 sys.path.append('../test')
+sys.path.append('../utils')
 
 from ModelBuilder import ModelBuilder
 from Networks import CriticFactory
 import tensorflow as tf
 from dataset import Dataset
-from tensorflow.keras.losses import MSE, MAE
-from matplotlib import pyplot as plt
+from tensorflow.keras.losses import MSE
+from plotutils import PlotUtils as pltUtils
 
 
 class Experiment1:
@@ -19,6 +20,7 @@ class Experiment1:
         self.symbols_win = symbol_win_size
         self.win_size = self.samples_per_symbol * self.symbols_win
 
+        # alpha for l2 loss, beta for gan loss, gamma for cyclic-consistency loss
         self.alpha = 10
         self.beta = 0.1
         self.gamma = 1
@@ -36,11 +38,11 @@ class Experiment1:
         self.polluter_critic = self._build_critic()
 
         # tf dataset
-        self.dataset = Dataset(self.win_size, base_dir='../dataset/', train_times=10000, batch_size=1)
+        self.dataset = Dataset(self.win_size, base_dir='../dataset/', train_times=100000, batch_size=20)
 
         # optimizers
-        self.polluter_optimizer = tf.keras.optimizers.Adam(1e-3)
-        self.cleaner_optimizer = tf.keras.optimizers.Adam(1e-3)
+        self.polluter_optimizer = tf.keras.optimizers.Adam(1e-4)
+        self.cleaner_optimizer = tf.keras.optimizers.Adam(1e-4)
         self.polluter_critic_optimizer = tf.keras.optimizers.Adam(1e-4)
         self.cleaner_critic_optimizer = tf.keras.optimizers.Adam(1e-4)
 
@@ -75,7 +77,10 @@ class Experiment1:
         critic = CriticFactory.get_conv_critic(self.win_size, 6, filter_list=[64, 128, 256, 128, 64, 32])
         return critic
 
-    def start_train_task(self, epoch=10):
+    def start_train_task(self):
+
+        self.print_train_context()
+
         for data in self.dataset:
             self.counter += 1
             tx, rx = tf.split(data, 2, axis=-1)
@@ -83,9 +88,32 @@ class Experiment1:
             rx = tf.squeeze(rx, axis=-1)
             self.train_one_step(tx, rx)
 
-            if self.counter % 1000 == 0:
+            if self.counter % 2000 == 0:
                 self.cleaner.save_weights(filepath='../save/cleaner_' + str(self.counter) + '.h5')
                 self.polluter.save_weights(filepath='../save/polluter_' + str(self.counter) + '.h5')
+                self.output_middle_result(counter=self.counter)
+
+    def print_train_context(self):
+        with open('../save/train_context.txt', 'w') as file:
+            file.writelines("samples per symbol: " + str(self.samples_per_symbol) + "\n")
+            file.writelines("symbol window length: " + str(self.symbols_win) + "\n")
+            file.writelines("loss weights: " + "(l2 distance loss) α = " + str(self.alpha)
+                            + " (cyclic consistency loss) β = " + str(self.beta)
+                            + " (gan loss) γ = " + str(self.gamma) + "\n")
+
+    def output_middle_result(self, counter):
+        fixed_win = self.dataset.get_fixed_win()
+        tx, rx = tf.split(fixed_win, 2, axis=-1)
+        clean_wave = self.cleaner(rx)
+        dirty_wave = self.polluter(tx)
+
+        tx = tf.squeeze(tx, axis=[0, -1])
+        rx = tf.squeeze(rx, axis=[0, -1])
+        clean_wave = tf.squeeze(clean_wave, axis=0)
+        dirty_wave = tf.squeeze(dirty_wave, axis=0)
+
+        pltUtils.plot_wave_tensors(tx, rx, clean_wave, dirty_wave, legend_list=['tx', 'rx', 'clean-wave', 'dirty-wave'],
+                                   is_save_file=True, file_name=str(self.counter) + '.jpg')
 
     # @tf.function
     def train_one_step(self, tx, rx):
@@ -178,16 +206,16 @@ class Experiment1:
             self.cleaner_optimizer.apply_gradients(zip(gradients_of_cleaner, self.cleaner.trainable_variables))
 
             # -----------------------------------------Step 4: print some info------------------------------------------
-            if self.counter % 10 == 0:
+            if self.counter % 20 == 0:
                 print("[info]: counter: " + str(self.counter) +
-                      "polluter_critic_loss: " + str(critic_loss) +
-                      "cleaner_critic_loss: " + str(critic_loss2) +
-                      "total_polluter_loss: " + str(total_polluter_loss) +
-                      "total_cleaner_loss: " + str(total_cleaner_loss))
+                      " polluter_critic_loss: " + str(critic_loss) +
+                      " cleaner_critic_loss: " + str(critic_loss2) +
+                      " total_polluter_loss: " + str(total_polluter_loss) +
+                      " total_cleaner_loss: " + str(total_cleaner_loss))
 
     def eval_model(self, plot_times=1):
-        self.polluter.load_weights(filepath='../save/polluter_8000.h5')
-        self.cleaner.load_weights(filepath='../save/cleaner_8000.h5')
+        # self.polluter.load_weights(filepath='../save/polluter_5000.h5')
+        self.cleaner.load_weights(filepath='../save/cleaner_20000.h5')
         times = 0
         for data in self.dataset:
             times += 1
@@ -199,15 +227,8 @@ class Experiment1:
             tx = tf.squeeze(tx, axis=[0, -1])
             rx = tf.squeeze(rx, axis=[0, -1])
 
-            tx_numpy = tx.numpy()
-            rx_numpy = rx.numpy()
-            clean_numpy = clean_wave.numpy()
-
-            plt.plot(tx_numpy)
-            plt.plot(rx_numpy)
-            plt.plot(clean_numpy)
-            plt.show()
-
+            pltUtils.plot_wave_tensors(tx, rx, clean_wave, legend_list=['tx', 'rx', 'clean-wave'],
+                                       is_save_file=True, file_name=str(self.counter) + '.jpg')
             if times == plot_times:
                 break
 
@@ -215,6 +236,8 @@ class Experiment1:
         print("===========experiment context===========")
         print("samples per symbol: " + str(self.samples_per_symbol))
         print("symbols windows: " + str(self.symbols_win))
+        print("loss weights: " + "alpha: " + str(self.alpha) +
+              " beta: " + str(self.beta) + " gamma: " + str(self.gamma))
 
         print("\n")
         print("cleaner summary: ")
@@ -240,5 +263,5 @@ class Experiment1:
 if __name__ == '__main__':
     exp = Experiment1(symbol_win_size=10)
     exp.print_experiment_context()
-    # exp.start_train_task()
-    exp.eval_model()
+    exp.start_train_task()
+    # exp.eval_model()

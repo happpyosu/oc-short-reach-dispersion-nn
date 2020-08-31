@@ -9,9 +9,6 @@ class Dataset:
         self.dataset = tf.data.TextLineDataset(tf.data.Dataset.list_files(base_dir + '*.txt')).\
             map(lambda x: tf.numpy_function(func=Dataset.str2float, inp=[x], Tout=tf.float32))
 
-        # tf dataset iter
-        self.iter = self.dataset.as_numpy_iterator()
-
         # window size
         self.win_size = win_size
 
@@ -33,19 +30,15 @@ class Dataset:
         # batch size
         self.batch_size = batch_size
 
+        # fixed window size batch_size
+        self.fixed_win = None
+
     def init_cache(self):
         # init the cache
         print("[info]: start init dataset cache...")
-        for e in self.iter:
+        for e in self.dataset.as_numpy_iterator():
             self.cache.append(e)
         print("[info]: Done init cache, cache length: " + str(len(self.cache)))
-        # for k in range(self.win_size):
-        #     try:
-        #         tmp = next(self.iter)
-        #         self.cache.append(tmp)
-        #     except StopIteration:
-        #         raise StopIteration('Data length is not sufficient, only ' + str(k) +
-        #                             ' can be acquired, while the [win_size] is ' + str(self.win_size))
 
     @staticmethod
     def str2float(x: np.ndarray):
@@ -83,8 +76,21 @@ class Dataset:
         reset the iteration context.
         :return: None
         """
-        self.iter = self.dataset.as_numpy_iterator()
-        self.init_cache()
+        self.counter = 0
+
+    def get_fixed_win(self):
+        """
+        get the fixed sample, the batch size of the fixed window sample is always 1
+        :return: tf.Tensor
+        """
+        # lazy init the fixed_win
+        if self.fixed_win is None:
+            # cur = random.randint(0, self.max_cursor)
+            cur = 8888
+            cut = self.cache[cur:cur+self.win_size]
+            self.fixed_win = tf.expand_dims(tf.convert_to_tensor(cut, dtype=tf.float32), axis=0)
+
+        return self.fixed_win
 
 
 if __name__ == '__main__':
