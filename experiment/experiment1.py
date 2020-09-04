@@ -8,12 +8,15 @@ sys.path.append('../utils')
 from ModelBuilder import ModelBuilder
 from Networks import CriticFactory
 import tensorflow as tf
-from dataset import Dataset
+from dataset import TrainingDataset
 from tensorflow.keras.losses import MSE
 from plotutils import PlotUtils as pltUtils
 
 
 class Experiment1:
+    """
+        Experiment one: training a bidirectional translation model for short-reach system
+    """
     def __init__(self, symbol_win_size=100):
         # experiment context info
         self.samples_per_symbol = 32
@@ -38,7 +41,7 @@ class Experiment1:
         self.polluter_critic = self._build_critic()
 
         # tf dataset
-        self.dataset = Dataset(self.win_size, base_dir='../dataset/', train_times=100000, batch_size=20)
+        self.dataset = TrainingDataset(self.win_size, base_dir='../dataset/', train_times=100000, batch_size=20)
 
         # optimizers
         self.polluter_optimizer = tf.keras.optimizers.Adam(1e-4)
@@ -81,14 +84,11 @@ class Experiment1:
 
         self.print_train_context()
 
-        for data in self.dataset:
+        for tx, rx in self.dataset:
             self.counter += 1
-            tx, rx = tf.split(data, 2, axis=-1)
-            tx = tf.squeeze(tx, axis=-1)
-            rx = tf.squeeze(rx, axis=-1)
             self.train_one_step(tx, rx)
 
-            if self.counter % 2000 == 0:
+            if self.counter % 40 == 0:
                 self.cleaner.save_weights(filepath='../save/cleaner_' + str(self.counter) + '.h5')
                 self.polluter.save_weights(filepath='../save/polluter_' + str(self.counter) + '.h5')
                 self.output_middle_result(counter=self.counter)
@@ -103,19 +103,20 @@ class Experiment1:
 
     def output_middle_result(self, counter):
         fixed_win = self.dataset.get_fixed_win()
-        tx, rx = tf.split(fixed_win, 2, axis=-1)
+        tx = fixed_win[0]
+        rx = fixed_win[1]
         clean_wave = self.cleaner(rx)
         dirty_wave = self.polluter(tx)
 
-        tx = tf.squeeze(tx, axis=[0, -1])
-        rx = tf.squeeze(rx, axis=[0, -1])
+        tx = tf.squeeze(tx, axis=0)
+        rx = tf.squeeze(rx, axis=0)
         clean_wave = tf.squeeze(clean_wave, axis=0)
         dirty_wave = tf.squeeze(dirty_wave, axis=0)
 
         pltUtils.plot_wave_tensors(tx, rx, clean_wave, dirty_wave, legend_list=['tx', 'rx', 'clean-wave', 'dirty-wave'],
                                    is_save_file=True, file_name=str(self.counter) + '.jpg')
 
-    # @tf.function
+    @tf.function
     def train_one_step(self, tx, rx):
         with tf.GradientTape(watch_accessed_variables=False) as polluter_tape, \
                 tf.GradientTape(watch_accessed_variables=False) as cleaner_tape, \
@@ -213,25 +214,6 @@ class Experiment1:
                       " total_polluter_loss: " + str(total_polluter_loss) +
                       " total_cleaner_loss: " + str(total_cleaner_loss))
 
-    def eval_model(self, plot_times=1):
-        # self.polluter.load_weights(filepath='../save/polluter_5000.h5')
-        self.cleaner.load_weights(filepath='../save/cleaner_20000.h5')
-        times = 0
-        for data in self.dataset:
-            times += 1
-            tx, rx = tf.split(data, 2, axis=-1)
-
-            clean_wave = self.cleaner(rx)
-
-            clean_wave = tf.squeeze(clean_wave, axis=[0])
-            tx = tf.squeeze(tx, axis=[0, -1])
-            rx = tf.squeeze(rx, axis=[0, -1])
-
-            pltUtils.plot_wave_tensors(tx, rx, clean_wave, legend_list=['tx', 'rx', 'clean-wave'],
-                                       is_save_file=True, file_name=str(self.counter) + '.jpg')
-            if times == plot_times:
-                break
-
     def print_experiment_context(self):
         print("===========experiment context===========")
         print("samples per symbol: " + str(self.samples_per_symbol))
@@ -264,4 +246,3 @@ if __name__ == '__main__':
     exp = Experiment1(symbol_win_size=10)
     exp.print_experiment_context()
     exp.start_train_task()
-    # exp.eval_model()
