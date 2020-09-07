@@ -3,7 +3,6 @@ sys.path.append('../utils')
 sys.path.append('../data')
 from enum import Enum
 import tensorflow as tf
-from utils import plotutils
 from data.dataset import TestDataSet
 
 
