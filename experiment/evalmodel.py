@@ -1,9 +1,10 @@
 import sys
 sys.path.append('../utils')
 sys.path.append('../data')
+
 from enum import Enum
 import tensorflow as tf
-from data.dataset import TestDataSet
+from dataset import TestDataSet
 
 
 class Metric(Enum):
@@ -152,13 +153,6 @@ class AVGMSEMetricProcessor(MetricProcessor):
             avg_mse.append(mse)
 
         print("[info]: <AVGMSEMetricProcessor> avg_mse_list: " + str(avg_mse))
-
-
-
-
-if __name__ == '__main__':
-    print(type(Metric.BER) == Metric)
-
 
 
 
