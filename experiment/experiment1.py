@@ -11,13 +11,13 @@ import tensorflow as tf
 from dataset import TrainingDataset
 from tensorflow.keras.losses import MSE
 from plotutils import PlotUtils as pltUtils
-
+from evalmodel import ModelEvaluator, Metric
 
 class Experiment1:
     """
         Experiment one: training a bidirectional translation model for short-reach system
     """
-    def __init__(self, symbol_win_size=100):
+    def __init__(self, symbol_win_size=11):
         # experiment context info
         self.samples_per_symbol = 32
         self.symbols_win = symbol_win_size
@@ -51,6 +51,9 @@ class Experiment1:
 
         # counter
         self.counter = 0
+
+        # model evaluator
+        self.cleaner_evaluator = ModelEvaluator(model=self.cleaner, symbol_win_size=self.symbols_win)
 
     @staticmethod
     def build_cleaner(win_size: int):
@@ -88,7 +91,7 @@ class Experiment1:
             self.counter += 1
             self.train_one_step(tx, rx)
 
-            if self.counter % 40 == 0:
+            if self.counter % 5000 == 0:
                 self.cleaner.save_weights(filepath='../save/cleaner_' + str(self.counter) + '.h5')
                 self.polluter.save_weights(filepath='../save/polluter_' + str(self.counter) + '.h5')
                 self.output_middle_result(counter=self.counter)
@@ -214,6 +217,23 @@ class Experiment1:
                       " total_polluter_loss: " + str(total_polluter_loss) +
                       " total_cleaner_loss: " + str(total_cleaner_loss))
 
+    def eval_cleaner(self, weight_name: str, save_dir='../save/'):
+        """
+        eval the cleaner using the model evaluator
+        :param weight_name: file_name of the cleaner's weight file
+        :param save_dir: base dir of the weight file
+        :return: None
+        """
+        # load weight first
+        path_to_weight = save_dir + weight_name
+        self.cleaner.load_weights(filepath=path_to_weight)
+
+        # add metric to evaluate
+        self.cleaner_evaluator.add_metric(Metric.BER)
+
+        # do evaluation
+        self.cleaner_evaluator.do_eval()
+
     def print_experiment_context(self):
         print("===========experiment context===========")
         print("samples per symbol: " + str(self.samples_per_symbol))
@@ -243,6 +263,6 @@ class Experiment1:
 
 
 if __name__ == '__main__':
-    exp = Experiment1(symbol_win_size=10)
+    exp = Experiment1(symbol_win_size=11)
     exp.print_experiment_context()
     exp.start_train_task()

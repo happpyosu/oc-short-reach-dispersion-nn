@@ -12,13 +12,16 @@ class AbstractDataset:
     AbstractDataset class for build the pipeline between the txt file and tf.Dataset
     """
 
-    def __init__(self, win_size: int, base_dir='../dataset/'):
+    def __init__(self, win_size: int, base_dir='../dataset/', batch_size: int = 20):
         # tf dataset
         self.dataset = tf.data.TextLineDataset(tf.data.Dataset.list_files(base_dir + '*.txt')). \
             map(lambda x: tf.numpy_function(func=AbstractDataset.str2float, inp=[x], Tout=tf.float32))
 
         # window size
         self.win_size = win_size
+
+        # batch size
+        self.batch_size = batch_size
 
     @staticmethod
     def str2float(x: np.ndarray):
@@ -32,6 +35,13 @@ class AbstractDataset:
         data = np.array(list(map(eval, split)), dtype='float32')
         return data
 
+    def get_win_size(self):
+        """
+        return the win size of the dataset
+        :return: win size of the dataset
+        """
+        return self.win_size
+
 
 class TrainingDataset(AbstractDataset):
     """
@@ -41,7 +51,7 @@ class TrainingDataset(AbstractDataset):
     def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20):
 
         # call super class for init
-        super().__init__(win_size, base_dir)
+        super().__init__(win_size, base_dir, batch_size)
 
         # tx cache
         self.tx_cache = list()
@@ -60,9 +70,6 @@ class TrainingDataset(AbstractDataset):
 
         # counter
         self.counter = 0
-
-        # batch size
-        self.batch_size = batch_size
 
         # fixed window size batch_size
         self.fixed_win = None
@@ -135,17 +142,115 @@ class TestDataSet(AbstractDataset):
     Test dataset for testing the trained tf Model
     """
 
-    def __init__(self, win_size: int, base_dir='../testset'):
-        super().__init__(win_size=win_size, base_dir=base_dir)
+    def __init__(self, win_size: int, base_dir='../testset/', batch_size: int = 1):
+        super().__init__(win_size=win_size, base_dir=base_dir, batch_size=batch_size)
 
-        self.cache = list()
+        # tx signal cache
+        self.tx_cache = list()
 
-    def init_cache(self):
+        # rx signal cache
+        self.rx_cache = list()
+
+        # symbol center position list (used for fast locating position evaluation window)
+        self.pos_list = list()
+
+        # ground truth symbol (ranged in [-3, -1, 1, 3])
+        self.gt = list()
+
+        # call init cache to init tx_cache, rx_cache, pos_list, gt
+        self._init_cache()
+
+        # max cursor in pos list
+        self.win_range = self._init_win_range()
+
+        # the cursor, recording the current position in pos_list, init by lo in win_range
+        self.cursor = self.win_range[0]
+
+    def _init_win_range(self):
+        """
+         init the range of the evaluation window
+        :return:
+        """
+        lb = - (self.win_size / 2 - 1)
+        up = self.win_size / 2
+
+        lo = 0
+        hi = len(self.pos_list) - 1
+
+        while lo < len(self.pos_list) and self.pos_list[lo] + lb < 0:
+            lo += 1
+
+        while hi >= 0 and self.pos_list[hi] + up >= len(self.tx_cache):
+            hi -= 1
+
+        if lo >= hi:
+            raise ValueError("invalid status of win range in test set, got lo = " + str(lo) +
+                             ", and hi = " + str(hi) + " please check the pos_list in the test set")
+
+        return lo, hi
+
+    def _init_cache(self):
+        """
+        init caches for fast generating tf.tensor
+        :return:
+        """
         # init the cache
-        print("[info]: start init training dataset cache...")
-        for e in self.dataset.as_numpy_iterator():
-            self.cache.append(e)
-        print("[info]: Done init training cache, cache length: " + str(len(self.cache)))
+        print("[info]: start init testing dataset cache, sampling pos list and gt list...")
+        iterator = self.dataset.as_numpy_iterator()
+        self.tx_cache = next(iterator)
+        self.rx_cache = next(iterator)
+        self.pos_list = next(iterator)
+        self.gt = next(iterator)
+
+        if len(self.tx_cache) != len(self.rx_cache):
+            raise ValueError("The tx length is not consistent with the rx length in test dataset")
+
+        print("[info]: Done init testing cache, cache length: " + str(len(self.tx_cache)))
+
+    def __iter__(self):
+        self.cursor = self.win_range[0]
+        return self
+
+    def __next__(self):
+        """
+        iter method for generating the test data in a iterative manner
+        :return: tx_tensor: tx_concat of the shape (batch_size, win_size), the batch_dim has been expanded
+                 rx_tensor: rx_concat of the shape (batch_size, win_size), the batch_dim has been expanded
+                 gt_concat: list of int type (length: batch_size), indicating the label
+        """
+        if self.cursor > self.win_range[1]:
+            raise StopIteration
+
+        batch_counter = 0
+        tx_concat = None
+        rx_concat = None
+        gt_concat = list()
+        while batch_counter < self.batch_size:
+
+            if self.cursor > self.win_range[1]:
+                break
+
+            center = self.pos_list[self.cursor]
+            lb = int(center - (self.win_size / 2 - 1))
+            ub = int(center + self.win_size / 2 + 1)
+            tx_tensor = tf.expand_dims(tf.convert_to_tensor(self.tx_cache[lb:ub], dtype=tf.float32), axis=0)
+            rx_tensor = tf.expand_dims(tf.convert_to_tensor(self.rx_cache[lb:ub], dtype=tf.float32), axis=0)
+            ground_truth = self.gt[center]
+
+            if tx_concat is None and rx_concat is None:
+                tx_concat = tx_tensor
+                rx_concat = rx_tensor
+                gt_concat.append(ground_truth)
+            else:
+                tx_concat = tf.concat([tx_concat, tx_tensor], axis=0)
+                rx_concat = tf.concat([rx_concat, rx_tensor], axis=0)
+                gt_concat.append(ground_truth)
+
+            batch_counter += 1
+            self.cursor += 1
+
+        return tx_concat, rx_concat, gt_concat
+
 
 
 if __name__ == '__main__':
