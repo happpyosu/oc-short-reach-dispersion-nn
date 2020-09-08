@@ -230,12 +230,12 @@ class TestDataSet(AbstractDataset):
             if self.cursor > self.win_range[1]:
                 break
 
-            center = self.pos_list[self.cursor]
+            center = int(self.pos_list[self.cursor])
             lb = int(center - (self.win_size / 2 - 1))
             ub = int(center + self.win_size / 2 + 1)
             tx_tensor = tf.expand_dims(tf.convert_to_tensor(self.tx_cache[lb:ub], dtype=tf.float32), axis=0)
             rx_tensor = tf.expand_dims(tf.convert_to_tensor(self.rx_cache[lb:ub], dtype=tf.float32), axis=0)
-            ground_truth = self.gt[center]
+            ground_truth = int(self.gt[self.cursor])
 
             if tx_concat is None and rx_concat is None:
                 tx_concat = tx_tensor

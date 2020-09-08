@@ -265,4 +265,4 @@ class Experiment1:
 if __name__ == '__main__':
     exp = Experiment1(symbol_win_size=11)
     exp.print_experiment_context()
-    exp.start_train_task()
+    exp.eval_cleaner('cleaner_100000.h5')

@@ -94,7 +94,6 @@ class BERMetricProcessor(MetricProcessor):
         right = 0
         error = 0
         for _, rx, gt in self.test_set:
-            batch_sz = rx[0]
             pred = self.model(rx)
             res = self._decode_pam4(pred)
             res_map = [gt[i] == res[i] for i in range(len(gt))]
@@ -105,7 +104,7 @@ class BERMetricProcessor(MetricProcessor):
             error += error_num
 
         print("[info]: <BERMetricProcessor> total symbol: " + str(right + error) + " , right decision: " +
-              str(right) + " ,error decision: " + str(error) + ", ber: " + str(right / (right + error)))
+              str(right) + " ,error decision: " + str(error) + ", ber: " + str(error / (right + error)))
 
     def _decode_pam4(self, pred_tx, sig_range: tuple = (-1, 1)):
         """
