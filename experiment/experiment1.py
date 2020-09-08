@@ -62,7 +62,7 @@ class Experiment1:
         model = builder \
             .build('fc', 4, [25, 50, 100, 200]) \
             .build('fc', 4, [200, 100, 50, 25]) \
-            .build('fc', 1, [win_size], activation_list=['tanh']) \
+            .build('fc', 1, [win_size], activation_list=['none']) \
             .to_model()
 
         return model
@@ -74,7 +74,7 @@ class Experiment1:
         model = builder \
             .build('fc', 4, [25, 50, 100, 200]) \
             .build('fc', 4, [200, 100, 50, 25]) \
-            .build('fc', 1, [win_size], activation_list=['tanh']) \
+            .build('fc', 1, [win_size], activation_list=['none']) \
             .to_model()
 
         return model
@@ -265,4 +265,4 @@ class Experiment1:
 if __name__ == '__main__':
     exp = Experiment1(symbol_win_size=11)
     exp.print_experiment_context()
-    exp.eval_cleaner('cleaner_100000.h5')
+    # exp.eval_cleaner('cleaner_100000.h5')

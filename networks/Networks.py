@@ -44,7 +44,10 @@ class ModuleFactory:
 
         for i in range(layer_size):
             model.add(layers.BatchNormalization())
-            model.add(layers.Dense(units=layer_dim_list[i], activation=activation_list[i]))
+            if activation_list[i] == 'none':
+                model.add(layers.Dense(units=layer_dim_list[i]))
+            else:
+                model.add(layers.Dense(units=layer_dim_list[i], activation=activation_list[i]))
 
         return model
 

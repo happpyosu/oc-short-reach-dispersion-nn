@@ -102,11 +102,11 @@ class BERMetricProcessor(MetricProcessor):
             error_num = len(res_map) - right_num
 
             # show why error occurs
-            if error_num != 0:
-                tx = tf.squeeze(tx, axis=0)
-                rx = tf.squeeze(rx, axis=0)
-                pred = tf.squeeze(pred, axis=0)
-                PlotUtils.plot_wave_tensors(tx, rx, pred, legend_list=['tx', 'rx', 'clean_wave'])
+            # if error_num != 0:
+            #     tx = tf.squeeze(tx, axis=0)
+            #     rx = tf.squeeze(rx, axis=0)
+            #     pred = tf.squeeze(pred, axis=0)
+            #     PlotUtils.plot_wave_tensors(tx, rx, pred, legend_list=['tx', 'rx', 'clean_wave'])
 
             # ber statistics
             right += right_num
