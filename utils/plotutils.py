@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 
-
 class PlotUtils:
     """
     plotUtils offer wrapped plot methods for plotting tf tensors or numpy ndarray
@@ -16,9 +15,11 @@ class PlotUtils:
         :param wave_tensors: tf tensors (batch-size exclusive)
         :return: None
         """
+        # if the length of wave_tensors and legend_list is not the same, will generate increasing legends
         if len(wave_tensors) != len(legend_list):
             legend_list = [str(i) for i in range(len(wave_tensors))]
         index = 0
+
         plt.figure()
 
         for tensor in wave_tensors:
@@ -29,6 +30,7 @@ class PlotUtils:
         plt.legend(legend_list)
         if is_save_file:
             plt.savefig('../output/' + file_name)
+
         plt.show()
 
     @staticmethod

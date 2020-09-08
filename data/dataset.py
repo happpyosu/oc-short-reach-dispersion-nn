@@ -42,6 +42,13 @@ class AbstractDataset:
         """
         return self.win_size
 
+    def get_batch_size(self):
+        """
+        return the batch size of the dataset
+        :return: batch size of the dataset
+        """
+        return self.batch_size
+
 
 class TrainingDataset(AbstractDataset):
     """

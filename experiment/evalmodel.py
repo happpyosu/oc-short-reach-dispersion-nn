@@ -5,6 +5,7 @@ sys.path.append('../data')
 from enum import Enum
 import tensorflow as tf
 from dataset import TestDataSet
+from plotutils import PlotUtils
 
 
 class Metric(Enum):
@@ -93,13 +94,21 @@ class BERMetricProcessor(MetricProcessor):
         """
         right = 0
         error = 0
-        for _, rx, gt in self.test_set:
+        for tx, rx, gt in self.test_set:
             pred = self.model(rx)
             res = self._decode_pam4(pred)
             res_map = [gt[i] == res[i] for i in range(len(gt))]
             right_num = sum(res_map)
             error_num = len(res_map) - right_num
 
+            # show why error occurs
+            if error_num != 0:
+                tx = tf.squeeze(tx, axis=0)
+                rx = tf.squeeze(rx, axis=0)
+                pred = tf.squeeze(pred, axis=0)
+                PlotUtils.plot_wave_tensors(tx, rx, pred, legend_list=['tx', 'rx', 'clean_wave'])
+
+            # ber statistics
             right += right_num
             error += error_num
 
