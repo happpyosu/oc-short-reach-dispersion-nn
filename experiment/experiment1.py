@@ -8,7 +8,7 @@ sys.path.append('../utils')
 from ModelBuilder import ModelBuilder
 from Networks import CriticFactory
 import tensorflow as tf
-from dataset import TrainingDataset
+from dataset import TrainingDataset, TrainingDataSetV2
 from tensorflow.keras.losses import MSE
 from plotutils import PlotUtils as pltUtils
 from evalmodel import ModelEvaluator, Metric
@@ -41,7 +41,7 @@ class Experiment1:
         self.polluter_critic = self._build_critic()
 
         # tf dataset
-        self.dataset = TrainingDataset(self.win_size, base_dir='../dataset/', train_times=100000, batch_size=20)
+        self.dataset = TrainingDataSetV2(self.win_size, base_dir='../dataset/', train_times=100000, batch_size=20)
 
         # optimizers
         self.polluter_optimizer = tf.keras.optimizers.Adam(1e-4)
@@ -265,4 +265,5 @@ class Experiment1:
 if __name__ == '__main__':
     exp = Experiment1(symbol_win_size=11)
     exp.print_experiment_context()
-    # exp.eval_cleaner('cleaner_100000.h5')
+    exp.start_train_task()
+    # exp.eval_cleaner('cleaner_90000.h5')

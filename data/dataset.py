@@ -52,7 +52,8 @@ class AbstractDataset:
 
 class TrainingDataset(AbstractDataset):
     """
-    Training Dataset class, for generating data during training a dataset
+    Training Dataset class, for generating data during training a dataset, the strategy of this dataset is to randomly
+    slide the training window to generate training
     """
 
     def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20):
@@ -142,6 +143,115 @@ class TrainingDataset(AbstractDataset):
             self.fixed_win = (fixed_win_tx, fixed_win_rx)
 
         return self.fixed_win
+
+
+class TrainingDataSetV2(AbstractDataset):
+    """
+    Training DataSet v2 class. This dataset class will not use the randomly sliding window strategy but the fixed win in
+    the clarified pos list, like the test dataset.
+    """
+
+    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20):
+        super().__init__(win_size, base_dir, batch_size)
+
+        # tx signal cache
+        self.tx_cache = list()
+
+        # rx signal cache
+        self.rx_cache = list()
+
+        # symbol center position list (used for fast locating position evaluation window)
+        self.pos_list = list()
+
+        # init the cache
+        self._init_cache()
+
+        # training times counter
+        self.training_times = train_times
+
+        # counter
+        self.counter = 0
+
+        # max cursor in pos list
+        self.win_range = self._init_win_range()
+
+    def _init_cache(self):
+        """
+        init caches for fast generating tf.tensor
+        :return:
+        """
+        # init the cache
+        print("[info]: start init training dataset cache, sampling pos list and gt list...")
+        iterator = self.dataset.as_numpy_iterator()
+        self.tx_cache = next(iterator)
+        self.rx_cache = next(iterator)
+        self.pos_list = next(iterator)
+
+        if len(self.tx_cache) != len(self.rx_cache):
+            raise ValueError("The tx length is not consistent with the rx length in training dataset")
+
+        print("[info]: Done init training cache, cache length: " + str(len(self.tx_cache)))
+
+    def _init_win_range(self):
+        """
+         init the range of the window
+        :return: lo: the lowest valid index in pos_list ensuring the model input window is full
+                 hi: the highest valid index in pos_list ensuring the model input window is full
+        """
+        lb = - (self.win_size / 2 - 1)
+        up = self.win_size / 2
+
+        lo = 0
+        hi = len(self.pos_list) - 1
+
+        while lo < len(self.pos_list) and self.pos_list[lo] + lb < 0:
+            lo += 1
+
+        while hi >= 0 and self.pos_list[hi] + up >= len(self.tx_cache):
+            hi -= 1
+
+        if lo >= hi:
+            raise ValueError("invalid status of win range in trainV2 set, got lo = " + str(lo) +
+                             ", and hi = " + str(hi) + " please check the pos_list in the test set")
+
+        return lo, hi
+
+    def __iter__(self):
+        # reset the counter
+        self.counter = 0
+        return self
+
+    def __next__(self):
+        """
+        iter method for generating the test data in a iterative manner
+        :return: tx_tensor: tx_concat of the shape (batch_size, win_size), the batch_dim has been expanded
+                 rx_tensor: rx_concat of the shape (batch_size, win_size), the batch_dim has been expanded
+                 gt_concat: list of int type (length: batch_size), indicating the label
+        """
+        self.counter += 1
+
+        if self.counter > self.training_times:
+            raise StopIteration
+
+        tx_concat = None
+        rx_concat = None
+
+        for i in range(self.batch_size):
+            cursor = random.randint(self.win_range[0], self.win_range[1])
+            center = int(self.pos_list[cursor])
+            lb = int(center - (self.win_size / 2 - 1))
+            ub = int(center + self.win_size / 2 + 1)
+            tx_tensor = tf.expand_dims(tf.convert_to_tensor(self.tx_cache[lb:ub], dtype=tf.float32), axis=0)
+            rx_tensor = tf.expand_dims(tf.convert_to_tensor(self.rx_cache[lb:ub], dtype=tf.float32), axis=0)
+
+            if tx_concat is None and rx_concat is None:
+                tx_concat = tx_tensor
+                rx_concat = rx_tensor
+            else:
+                tx_concat = tf.concat([tx_concat, tx_tensor], axis=0)
+                rx_concat = tf.concat([rx_concat, rx_tensor], axis=0)
+
+        return tx_concat, rx_concat
 
 
 class TestDataSet(AbstractDataset):
@@ -257,7 +367,6 @@ class TestDataSet(AbstractDataset):
             self.cursor += 1
 
         return tx_concat, rx_concat, gt_concat
-
 
 
 if __name__ == '__main__':
