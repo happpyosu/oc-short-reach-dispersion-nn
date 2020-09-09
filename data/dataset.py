@@ -175,6 +175,9 @@ class TrainingDataSetV2(AbstractDataset):
         # max cursor in pos list
         self.win_range = self._init_win_range()
 
+        # fixed win
+        self.fixed_win = None
+
     def _init_cache(self):
         """
         init caches for fast generating tf.tensor
@@ -252,6 +255,28 @@ class TrainingDataSetV2(AbstractDataset):
                 rx_concat = tf.concat([rx_concat, rx_tensor], axis=0)
 
         return tx_concat, rx_concat
+
+    def get_fixed_win(self):
+        """
+        get the fixed sample, the batch size of the fixed window sample is always 1
+        :return: tf.Tensor
+        """
+        # lazy init the fixed_win
+        if self.fixed_win is None:
+            cur = self.win_range[888]
+            center = int(self.pos_list[cur])
+
+            lb = int(center - (self.win_size / 2 - 1))
+            ub = int(center + self.win_size / 2 + 1)
+
+            cut_tx = self.tx_cache[lb:ub]
+            cut_rx = self.rx_cache[lb:ub]
+            fixed_win_tx = tf.expand_dims(tf.convert_to_tensor(cut_tx, dtype=tf.float32), axis=0)
+            fixed_win_rx = tf.expand_dims(tf.convert_to_tensor(cut_rx, dtype=tf.float32), axis=0)
+
+            self.fixed_win = (fixed_win_tx, fixed_win_rx)
+
+        return self.fixed_win
 
 
 class TestDataSet(AbstractDataset):
