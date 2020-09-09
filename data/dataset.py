@@ -263,7 +263,7 @@ class TrainingDataSetV2(AbstractDataset):
         """
         # lazy init the fixed_win
         if self.fixed_win is None:
-            cur = self.win_range[888]
+            cur = 888
             center = int(self.pos_list[cur])
 
             lb = int(center - (self.win_size / 2 - 1))
