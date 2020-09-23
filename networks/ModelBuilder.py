@@ -1,6 +1,4 @@
-import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
 from Networks import ModuleFactory
 
 
@@ -78,9 +76,4 @@ class ModelBuilder:
 
 
 if __name__ == '__main__':
-    builder = ModelBuilder(input_window_size=10)
-    # model = builder.build('fc', 3, [5, 5, 5]).build('fc', 2, [6, 6]).build('fc', 5, [1, 1, 2, 4, 5]).build('conv', 3).\
-    #     build('fc', 2, [10, 1]).to_model()
-    # model.summary()
-    # builder.print_build_context()
-    model = builder.build('fc', 3, [31, 15, 1], activation_list=['relu', 'relu', None])
+    pass
