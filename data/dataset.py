@@ -217,6 +217,8 @@ class TrainingDataSetV2(AbstractDataset):
             raise ValueError("invalid status of win range in trainV2 set, got lo = " + str(lo) +
                              ", and hi = " + str(hi) + " please check the pos_list in the test set")
 
+        print("[info]: win range of DatasetV2: ", str((lo, hi)))
+
         return lo, hi
 
     def __iter__(self):
@@ -279,6 +281,112 @@ class TrainingDataSetV2(AbstractDataset):
         return self.fixed_win
 
 
+class TrainingDataSetV3(AbstractDataset):
+    """
+    TrainingDataSetV3 only will return down-sampled data point in the __next__() function, which is distinct from the
+    TrainingDataSetV2 that producing the continous wave-form.
+    """
+    def __init__(self, win_size: int, train_times=1000, batch_size=20):
+        # tx signal cache
+        super().__init__(win_size, batch_size=batch_size)
+        self.tx_cache = list()
+
+        # rx signal cache
+        self.rx_cache = list()
+
+        # symbol center position list (used for fast locating position evaluation window)
+        self.pos_list = list()
+
+        # ground truth symbol (ranged in [-3, -1, 1, 3])
+        self.gt = list()
+
+        # init the cache
+        self._init_cache()
+
+        # win_range in pos list
+        self.win_range = self._init_win_range()
+
+        # counter
+        self.counter = 0
+
+        # training times
+        self.training_times = train_times
+
+        # half span
+        self.half_span = int(self.win_size // 2)
+
+        # training epoch, we cal the average epoch under the given training times
+        self.epoch = (self.training_times * self.batch_size) // (self.win_range[1] - self.win_range[0] + 1)
+
+    def _init_cache(self):
+        """
+        init caches for fast generating tf.tensor
+        :return:
+        """
+        # init the cache
+        print("[info]: start init training dataset cache, sampling pos list and gt list...")
+        iterator = self.dataset.as_numpy_iterator()
+        self.tx_cache = next(iterator)
+        self.rx_cache = next(iterator)
+        self.pos_list = next(iterator)
+        self.gt = next(iterator)
+
+        if len(self.tx_cache) != len(self.rx_cache):
+            raise ValueError("The tx length is not consistent with the rx length in training dataset")
+
+        print("[info]: Done init training cache, cache length: " + str(len(self.tx_cache)))
+
+    def _init_win_range(self):
+        """
+        cal the win range of the dataset
+        :return: lo and hi limit in the pos list.
+        """
+        half_span = int(self.win_size // 2)
+
+        lo = half_span
+        hi = len(self.pos_list) - 1 - half_span
+
+        return lo, hi
+
+    def __iter__(self):
+        self.counter = 0
+        return self
+
+    def __next__(self):
+        self.counter += 1
+        if self.counter > self.training_times:
+            raise StopIteration
+
+        tx_concat = None
+        rx_concat = None
+        gt_concat = None
+
+        for i in range(self.batch_size):
+            cursor = random.randint(self.win_range[0], self.win_range[1])
+            left = cursor - self.half_span
+            right = cursor + self.half_span + 1
+            pos = self.pos_list[left:right]
+
+            cut_tx = [self.tx_cache[int(x)] for x in pos]
+            cut_rx = [self.rx_cache[int(x)] for x in pos]
+            cut_gt = [int((self.gt[cursor] + 3) // 2)]
+
+            cut_gt = tf.one_hot(cut_gt, 4)
+            cut_tx = tf.expand_dims(tf.convert_to_tensor(cut_tx, dtype=tf.float32), axis=0)
+            cut_rx = tf.expand_dims(tf.convert_to_tensor(cut_rx, dtype=tf.float32), axis=0)
+
+            if tx_concat is None:
+                tx_concat = cut_tx
+                rx_concat = cut_rx
+                gt_concat = cut_gt
+            else:
+                tx_concat = tf.concat([tx_concat, cut_tx], axis=0)
+                rx_concat = tf.concat([rx_concat, cut_rx], axis=0)
+                gt_concat = tf.concat([gt_concat, cut_gt], axis=0)
+
+        return tx_concat, rx_concat, gt_concat
+
+
 class TestDataSet(AbstractDataset):
     """
     Test dataset for testing the trained tf Model
@@ -328,6 +436,8 @@ class TestDataSet(AbstractDataset):
         if lo >= hi:
             raise ValueError("invalid status of win range in test set, got lo = " + str(lo) +
                              ", and hi = " + str(hi) + " please check the pos_list in the test set")
+
+        print("[info]: win range of Testset: ", str((lo, hi)))
 
         return lo, hi
 
@@ -395,8 +505,12 @@ class TestDataSet(AbstractDataset):
 
 
 if __name__ == '__main__':
-    dataset = TrainingDataset(100, train_times=10)
-    # a = next(iter)
-    # split1, split2 = tf.split(a, 2, axis=-1)
-    # print(split1)
-    # print(split2)
+    dataset = TrainingDataSetV3(win_size=11, train_times=10000)
+
+    for (tx, rx, gt) in dataset:
+        print(tx)
+        print(rx)
+        print(gt)
+
+
+
