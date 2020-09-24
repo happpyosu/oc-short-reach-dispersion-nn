@@ -78,9 +78,9 @@ class Experiment2:
         start the training task.
         :return: None
         """
-        for tx, rx, gt in self.dataset:
+        for _, rx, gt in self.dataset:
             self.counter += 1
-            self.train_one_step(tx, gt)
+            self.train_one_step(rx, gt)
 
             if self.counter % 5000 == 0:
                 self.save_model()
