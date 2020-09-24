@@ -12,9 +12,9 @@ class AbstractDataset:
     AbstractDataset class for build the pipeline between the txt file and tf.Dataset
     """
 
-    def __init__(self, win_size: int, base_dir='../dataset/', batch_size: int = 20):
+    def __init__(self, win_size: int, base_dir='../dataset/', batch_size: int = 20, dataset_filename='*.txt'):
         # tf dataset
-        self.dataset = tf.data.TextLineDataset(tf.data.Dataset.list_files(base_dir + '*.txt')). \
+        self.dataset = tf.data.TextLineDataset(tf.data.Dataset.list_files(base_dir + dataset_filename)). \
             map(lambda x: tf.numpy_function(func=AbstractDataset.str2float, inp=[x], Tout=tf.float32))
 
         # window size
@@ -56,10 +56,10 @@ class TrainingDataset(AbstractDataset):
     slide the training window to generate training
     """
 
-    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20):
+    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20, dataset_filename='*.txt'):
 
         # call super class for init
-        super().__init__(win_size, base_dir, batch_size)
+        super().__init__(win_size, base_dir, batch_size, dataset_filename)
 
         # tx cache
         self.tx_cache = list()
@@ -151,8 +151,8 @@ class TrainingDataSetV2(AbstractDataset):
     the clarified pos list, like the test dataset.
     """
 
-    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20):
-        super().__init__(win_size, base_dir, batch_size)
+    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20, dataset_filename='*.txt'):
+        super().__init__(win_size, base_dir, batch_size, dataset_filename)
 
         # tx signal cache
         self.tx_cache = list()
@@ -286,9 +286,9 @@ class TrainingDataSetV3(AbstractDataset):
     TrainingDataSetV3 only will return down-sampled data point in the __next__() function, which is distinct from the
     TrainingDataSetV2 that producing the continous wave-form.
     """
-    def __init__(self, win_size: int, train_times=1000, batch_size=20):
+    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20, dataset_filename='*.txt'):
         # tx signal cache
-        super().__init__(win_size, batch_size=batch_size)
+        super().__init__(win_size, base_dir=base_dir, batch_size=batch_size, dataset_filename=dataset_filename)
         self.tx_cache = list()
 
         # rx signal cache
@@ -392,8 +392,8 @@ class TestDataSet(AbstractDataset):
     Test dataset for testing the trained tf Model
     """
 
-    def __init__(self, win_size: int, base_dir='../testset/', batch_size: int = 1):
-        super().__init__(win_size=win_size, base_dir=base_dir, batch_size=batch_size)
+    def __init__(self, win_size: int, base_dir='../testset/', batch_size: int = 1, dataset_filename='*.txt'):
+        super().__init__(win_size=win_size, base_dir=base_dir, batch_size=batch_size, dataset_filename=dataset_filename)
 
         # tx signal cache
         self.tx_cache = list()
@@ -504,8 +504,19 @@ class TestDataSet(AbstractDataset):
         return tx_concat, rx_concat, gt_concat
 
 
+class TestDataSetV2(TrainingDataSetV3):
+
+    def __init__(self, win_size: int, dataset_filename='*.txt'):
+        super().__init__(win_size, base_dir='../testset/', batch_size=1, dataset_filename=dataset_filename)
+
+    """
+    Directly using the TrainingDataSetV3
+    """
+    pass
+
+
 if __name__ == '__main__':
-    dataset = TrainingDataSetV3(win_size=11, train_times=10000)
+    dataset = TestDataSetV2(win_size=1)
 
     for (tx, rx, gt) in dataset:
         print(tx)

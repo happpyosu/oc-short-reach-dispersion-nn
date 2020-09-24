@@ -4,26 +4,38 @@ sys.path.append('../data')
 
 from enum import Enum
 import tensorflow as tf
-from dataset import TestDataSet
+from dataset import TestDataSet, TestDataSetV2
 from plotutils import PlotUtils
+
+'''
+@author: Chen Hao
+@filename: evalmodel.py
+@commment: this file implements a chained modelEvaluator, the user can add metric processor to the 
+modelEvaluator and the modelEvaluator will automatically process the evaluation-task chain depending on the 
+metric to evaluate.
+@date: 2020-09-23
+'''
 
 
 class Metric(Enum):
     """
     enum metrics for the ModelEvaluator
     """
-    # bit error rate, noting that the predicted signal is after decision
+    # bit error rate, noting that the predicted signal is not passed into a softmax classifier
     BER = 0
 
     # average mse in the prediction, noting that the predicted signal is before decision
     AVG_MSE = 1
+
+    # bit error rate, directly using the classifier to do symbol decision
+    BER_SOFTMAX = 2
 
 
 class ModelEvaluator:
     """
     Model Evaluator class is used to eval a trained nn model using several test set on different metrics.
     """
-    def __init__(self, model: tf.keras.Model, symbol_win_size=11):
+    def __init__(self, model: tf.keras.Model, symbol_win_size=11, dataset_filename='*.txt'):
         # model to evaluate
         self.model = model
 
@@ -33,10 +45,16 @@ class ModelEvaluator:
         self.win_size = self.samples_per_symbol * self.symbols_win
 
         # test dataset, test one b
-        self.testset = TestDataSet(win_size=self.win_size, base_dir='../testset/')
+        self.testset = TestDataSet(win_size=self.win_size, base_dir='../testset/', dataset_filename=dataset_filename)
 
         # metric processor list
         self.metric_processor_list = list()
+
+    def load_weight(self, weight_filename):
+        self.model.load_weights('../save/' + weight_filename)
+
+    def set_dataset(self, dataset):
+        self.testset = dataset
 
     def add_metric(self, metric: Metric):
         """
@@ -48,6 +66,8 @@ class ModelEvaluator:
             self.metric_processor_list.append(BERMetricProcessor(Metric.BER.value, self.model, self.testset))
         elif metric == Metric.AVG_MSE:
             self.metric_processor_list.append(AVGMSEMetricProcessor(Metric.AVG_MSE.value, self.model, self.testset))
+        elif metric == Metric.BER_SOFTMAX:
+            self.metric_processor_list.append(BERSoftmaxMetricProcessor(Metric.BER_SOFTMAX.value, self.model, self.testset))
 
         return self
 
@@ -66,7 +86,7 @@ class MetricProcessor:
     """
     base class of metric processor for evaluating different metrics
     """
-    def __init__(self, metric_type: int, model: tf.keras.Model, test_set: TestDataSet):
+    def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
         self.metric_type = metric_type
         self.model = model
         self.test_set = test_set
@@ -83,7 +103,7 @@ class BERMetricProcessor(MetricProcessor):
     """
     ber metric processor
     """
-    def __init__(self, metric_type: int, model: tf.keras.Model, test_set: TestDataSet):
+    def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
         # directly call the super class to init the test context.
         super().__init__(metric_type, model, test_set)
 
@@ -145,7 +165,7 @@ class AVGMSEMetricProcessor(MetricProcessor):
     """
     AVG_MSE metric processor
     """
-    def __init__(self, metric_type: int, model: tf.keras.Model, test_set: TestDataSet):
+    def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
         super().__init__(metric_type, model, test_set)
 
     def process(self):
@@ -161,6 +181,47 @@ class AVGMSEMetricProcessor(MetricProcessor):
             avg_mse.append(mse)
 
         print("[info]: <AVGMSEMetricProcessor> avg_mse_list: " + str(avg_mse))
+
+
+class BERSoftmaxMetricProcessor(MetricProcessor):
+    """
+    BER Softmax Metric Processor
+    """
+    def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
+        """
+
+        :param metric_type:
+        :param model:
+        :param test_set: should be TestDataSetV2
+        """
+        if not isinstance(test_set, TestDataSetV2):
+            raise TypeError("[Error]: In BERSoftmaxMetricProcessor, the test dataset should be the type {"
+                            "TestDataSetV2}, "
+                            " but got ", str(type(test_set)))
+        super().__init__(metric_type, model, test_set)
+
+    def process(self):
+        """
+        do process the ber metric with the softmax result, the code should be run in eager mode.
+        :return: None
+        """
+        total = 0
+        right = 0
+        error = 0
+        for _, rx, gt in self.test_set:
+            total += 1
+            pred = self.model(rx)
+
+            # argmax to find which one is in most probability
+            pred = tf.argmax(tf.squeeze(pred, axis=0)).numpy()
+            gt = tf.argmax(tf.squeeze(gt, axis=0).numpy()).numpy()
+            if pred == int(gt):
+                right += 1
+            else:
+                error += 1
+
+        print("[info]: <BERSoftmaxMetricProcessor> total symbol: " + str(right + error) + " , right decision: " +
+              str(right) + " ,error decision: " + str(error) + ", ber: " + str(error / (right + error)))
 
 
 

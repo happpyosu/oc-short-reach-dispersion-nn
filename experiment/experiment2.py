@@ -25,7 +25,7 @@ class Experiment2:
         self.cce = tf.keras.losses.CategoricalCrossentropy()
 
         # the model
-        self.model = self._build_nn(self.win_size)
+        self.model = self.build_nn(self.win_size)
 
         # the dataset
         self.dataset = TrainingDataSetV3(self.win_size, train_times=100000, batch_size=20)
@@ -37,7 +37,7 @@ class Experiment2:
         self.counter = 0
 
     @staticmethod
-    def _build_nn(win_sz: int):
+    def build_nn(win_sz: int):
         """
         build the classifier of the
         :param win_sz:
@@ -47,7 +47,7 @@ class Experiment2:
 
         model = builder \
             .build('fc', 2, [50, 50]) \
-            .build('fc', 1, [4], activation_list=['none']) \
+            .build('fc', 1, [4], activation_list=['softmax']) \
             .to_model()
 
         return model
