@@ -36,4 +36,4 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    Evaluation2('plain_nn_100000.h5', '28G_dataout10000.mat.txt').eval()
+    Evaluation2('plain_nn_100000.h5', '28G_dataout20000.mat.txt').eval()

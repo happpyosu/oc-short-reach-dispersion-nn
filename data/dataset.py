@@ -151,7 +151,8 @@ class TrainingDataSetV2(AbstractDataset):
     the clarified pos list, like the test dataset.
     """
 
-    def __init__(self, win_size: int, base_dir='../dataset/', train_times=1000, batch_size=20, dataset_filename='*.txt'):
+    def __init__(self, win_size: int, base_dir='../dataset/', batch_size=20, dataset_filename='*.txt',
+                 train_epoch=100):
         super().__init__(win_size, base_dir, batch_size, dataset_filename)
 
         # tx signal cache
@@ -166,17 +167,26 @@ class TrainingDataSetV2(AbstractDataset):
         # init the cache
         self._init_cache()
 
-        # training times counter
-        self.training_times = train_times
+        # epoch
+        self.epoch = train_epoch
 
         # counter
         self.counter = 0
 
-        # max cursor in pos list
+        # max cursor in pos list, the win range is stored as a tuple [low, high]
         self.win_range = self._init_win_range()
+
+        # training times counter
+        self.training_times = ((self.win_range[1] - self.win_range[0] + 1) * self.epoch) // self.batch_size
+
+        # step per epoch used for init the decay scheduler
+        self.step_per_epoch = (self.win_range[1] - self.win_range[0] + 1) // self.batch_size
 
         # fixed win
         self.fixed_win = None
+
+        print("\033[1;32m" + "[info]: (TrainingDataSetV2) epoch: " + str(self.epoch) +
+              " ,total steps: " + str(self.training_times) + " \033[0m")
 
     def _init_cache(self):
         """
@@ -184,16 +194,17 @@ class TrainingDataSetV2(AbstractDataset):
         :return:
         """
         # init the cache
-        print("[info]: start init training dataset cache, sampling pos list and gt list...")
+        print("\033[1;32m" + "[info]: (TrainingDataSetV2) start init training dataset cache..." + " \033[0m")
         iterator = self.dataset.as_numpy_iterator()
         self.tx_cache = next(iterator)
         self.rx_cache = next(iterator)
         self.pos_list = next(iterator)
 
         if len(self.tx_cache) != len(self.rx_cache):
-            raise ValueError("The tx length is not consistent with the rx length in training dataset")
+            raise ValueError("[Error]: The tx length is not consistent with the rx length in training dataset")
 
-        print("[info]: Done init training cache, cache length: " + str(len(self.tx_cache)))
+        print("\033[1;32m" + "[info]: (TrainingDataSetV2) Done init training cache, cache length: " +
+              str(len(self.tx_cache)) + " \033[0m")
 
     def _init_win_range(self):
         """
@@ -217,7 +228,9 @@ class TrainingDataSetV2(AbstractDataset):
             raise ValueError("invalid status of win range in trainV2 set, got lo = " + str(lo) +
                              ", and hi = " + str(hi) + " please check the pos_list in the test set")
 
-        print("[info]: win range of DatasetV2: ", str((lo, hi)))
+        print("\033[1;32m" + "[info]: (TrainingDataSetV2) win range of DatasetV2: ", str((lo, hi)),
+              "total data windows length for one epoch: " +
+              str(hi - lo + 1) + " \033[0m")
 
         return lo, hi
 
@@ -265,6 +278,7 @@ class TrainingDataSetV2(AbstractDataset):
         """
         # lazy init the fixed_win
         if self.fixed_win is None:
+            # '888' means a lot of money
             cur = 888
             center = int(self.pos_list[cur])
 
@@ -279,6 +293,9 @@ class TrainingDataSetV2(AbstractDataset):
             self.fixed_win = (fixed_win_tx, fixed_win_rx)
 
         return self.fixed_win
+
+    def get_step_per_epoch(self):
+        return self.step_per_epoch
 
 
 class TrainingDataSetV3(AbstractDataset):
@@ -507,7 +524,8 @@ class TestDataSet(AbstractDataset):
 class TestDataSetV2(TrainingDataSetV3):
 
     def __init__(self, win_size: int, dataset_filename='*.txt'):
-        super().__init__(win_size, base_dir='../testset/', batch_size=1, dataset_filename=dataset_filename)
+        super().__init__(win_size, base_dir='../testset/', train_times=50000, batch_size=1,
+                         dataset_filename=dataset_filename)
 
     """
     Directly using the TrainingDataSetV3
@@ -516,12 +534,11 @@ class TestDataSetV2(TrainingDataSetV3):
 
 
 if __name__ == '__main__':
-    dataset = TestDataSetV2(win_size=1)
-
-    for (tx, rx, gt) in dataset:
-        print(tx)
-        print(rx)
-        print(gt)
+    dataset = TrainingDataSetV2(win_size=11 * 16, train_epoch=100)
+    # count = 0
+    # for (tx, rx) in dataset:
+    #     count += 1
+    #     print(count)
 
 
 

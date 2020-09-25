@@ -17,16 +17,19 @@ class Experiment1:
     """
         Experiment one: training a bidirectional translation model for short-reach system
     """
-    def __init__(self, symbol_win_size=11):
+    def __init__(self, symbol_win_size=7):
         # experiment context info
-        self.samples_per_symbol = 32
+        self.samples_per_symbol = 16
         self.symbols_win = symbol_win_size
         self.win_size = self.samples_per_symbol * self.symbols_win
 
         # alpha for l2 loss, beta for gan loss, gamma for cyclic-consistency loss
-        self.alpha = 10
-        self.beta = 0.1
-        self.gamma = 1
+        self.alpha = 1
+        self.beta = 0.001
+        self.gamma = 0.1
+
+        # training epoch
+        self.epoch = 100
 
         # build the cleaner
         self.cleaner = Experiment1.build_cleaner(self.win_size)
@@ -41,13 +44,21 @@ class Experiment1:
         self.polluter_critic = self._build_critic()
 
         # tf dataset
-        self.dataset = TrainingDataSetV2(self.win_size, base_dir='../dataset/', train_times=100000, batch_size=20)
+        self.dataset = TrainingDataSetV2(self.win_size, base_dir='../dataset/', train_epoch=self.epoch, batch_size=20)
+
+        # learning rate decay policy
+        lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
+            initial_learning_rate=0.001,
+            decay_steps=self.dataset.get_step_per_epoch() * self.epoch,
+            decay_rate=1,
+            staircase=False
+        )
 
         # optimizers
-        self.polluter_optimizer = tf.keras.optimizers.Adam(1e-4)
-        self.cleaner_optimizer = tf.keras.optimizers.Adam(1e-4)
-        self.polluter_critic_optimizer = tf.keras.optimizers.Adam(1e-4)
-        self.cleaner_critic_optimizer = tf.keras.optimizers.Adam(1e-4)
+        self.polluter_optimizer = tf.keras.optimizers.Adam(lr_schedule)
+        self.cleaner_optimizer = tf.keras.optimizers.Adam(lr_schedule)
+        self.polluter_critic_optimizer = tf.keras.optimizers.Adam(lr_schedule)
+        self.cleaner_critic_optimizer = tf.keras.optimizers.Adam(lr_schedule)
 
         # counter
         self.counter = 0
@@ -263,7 +274,8 @@ class Experiment1:
 
 
 if __name__ == '__main__':
-    exp = Experiment1(symbol_win_size=11)
+    exp = Experiment1(symbol_win_size=7)
     exp.print_experiment_context()
-    # exp.start_train_task()
-    exp.eval_cleaner('cleaner_200000.h5')
+    exp.start_train_task()
+    # exp.eval_cleaner('cleaner_200000.h5')
+
