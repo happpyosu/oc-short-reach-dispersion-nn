@@ -13,11 +13,14 @@ class AbstractDataset:
     """
 
     def __init__(self, batch_size: int = 20, dataset_filename='*.txt', test_mode=False):
+
+        self.test_mode = test_mode
+
         # dataset base dir
         if not test_mode:
             BASE_DIR = '../dataset/'
         else:
-            BASE_DIR = '../testset'
+            BASE_DIR = '../testset/'
 
         # tf dataset
         self.dataset = tf.data.TextLineDataset(tf.data.Dataset.list_files(BASE_DIR + dataset_filename)). \
@@ -25,6 +28,10 @@ class AbstractDataset:
 
         # batch size
         self.batch_size = batch_size
+
+        # if the test_mode the batch size will always be set to one
+        if test_mode:
+            self.batch_size = 1
 
         # sample per symbol
         self.sample_per_symbol = 16
@@ -132,6 +139,10 @@ class DataSetV1(AbstractDataset):
         # fixed win
         self.fixed_win = None
 
+        # if the dataset is in test mode, the training_times will be set to the len of win_range
+        if self.test_mode:
+            self.training_times = (self.win_range[1] - self.win_range[0] + 1)
+            # self.training_times = 10000
         print("\033[1;32m" + "[info]: (DataSetV1) epoch: " + str(self.epoch) +
               " ,total steps: " + str(self.training_times) + " \033[0m")
 
@@ -164,8 +175,8 @@ class DataSetV1(AbstractDataset):
 
             # '888' means a lot of money
             cur = 888
-            lb = int(self.pos_list[cur - self.half_span])
-            ub = int(self.pos_list[cur + self.half_span] + 1)
+            lb = int(self.pos_list[cur - self.half_span] - 1)
+            ub = int(self.pos_list[cur + self.half_span] - 1)
 
             cut_tx = self.tx_cache[lb:ub]
             cut_rx = self.rx_cache[lb:ub]

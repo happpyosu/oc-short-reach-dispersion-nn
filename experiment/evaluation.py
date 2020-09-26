@@ -48,4 +48,4 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    Evaluation2('plain_nn_100000.h5').eval()
+    Evaluation1('cleaner_160000.h5').eval()

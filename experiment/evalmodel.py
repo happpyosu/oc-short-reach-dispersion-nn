@@ -136,7 +136,7 @@ class BERMetricProcessor(MetricProcessor):
         :return: a list of the decoding results, the length is same with the batch size of pred_tx
         """
         batch_sz = pred_tx.shape[0]
-        sample_index = (self.test_set.sym_win_size * self.test_set.sample_per_symbol) // 2
+        sample_index = ((self.test_set.sym_win_size - 1) * self.test_set.sample_per_symbol) // 2
         res = list()
         for i in range(batch_sz):
             ds = float(pred_tx[i, int(sample_index)].numpy())

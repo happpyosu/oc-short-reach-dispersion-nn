@@ -7,7 +7,7 @@ sys.path.append('../utils')
 
 from ModelBuilder import ModelBuilder
 import tensorflow as tf
-from dataset import TrainingDataSetV3
+from dataset import DataSetV2
 
 
 class Experiment2:
@@ -28,7 +28,7 @@ class Experiment2:
         self.model = self.build_nn(self.win_size)
 
         # the dataset
-        self.dataset = TrainingDataSetV3(self.win_size, train_times=100000, batch_size=20)
+        self.dataset = DataSetV2(self.win_size, batch_size=20)
 
         # the optimizer
         self.optimizer = tf.keras.optimizers.Adam(1e-4)
