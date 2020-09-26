@@ -4,7 +4,7 @@ sys.path.append('../data')
 
 from enum import Enum
 import tensorflow as tf
-from dataset import TestDataSet, TestDataSetV2
+from dataset import DataSetV1, DataSetV2
 from plotutils import PlotUtils
 
 '''
@@ -35,26 +35,20 @@ class ModelEvaluator:
     """
     Model Evaluator class is used to eval a trained nn model using several test set on different metrics.
     """
-    def __init__(self, model: tf.keras.Model, symbol_win_size=11, dataset_filename='*.txt'):
+    def __init__(self, model: tf.keras.Model, dataset):
+
+        """
+        :param model: tf model
+        :param dataset: dataset to eval
+        """
         # model to evaluate
         self.model = model
 
-        # some meta data for building evaluation context
-        self.samples_per_symbol = 32
-        self.symbols_win = symbol_win_size
-        self.win_size = self.samples_per_symbol * self.symbols_win
-
         # test dataset, test one b
-        self.testset = TestDataSet(win_size=self.win_size, base_dir='../testset/', dataset_filename=dataset_filename)
+        self.testset = dataset
 
         # metric processor list
         self.metric_processor_list = list()
-
-    def load_weight(self, weight_filename):
-        self.model.load_weights('../save/' + weight_filename)
-
-    def set_dataset(self, dataset):
-        self.testset = dataset
 
     def add_metric(self, metric: Metric):
         """
@@ -101,9 +95,9 @@ class MetricProcessor:
 
 class BERMetricProcessor(MetricProcessor):
     """
-    ber metric processor
+    ber metric processor, should pass DataSetV2 to do the evaluation
     """
-    def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
+    def __init__(self, metric_type: int, model: tf.keras.Model, test_set: DataSetV2):
         # directly call the super class to init the test context.
         super().__init__(metric_type, model, test_set)
 
@@ -117,11 +111,11 @@ class BERMetricProcessor(MetricProcessor):
         for tx, rx, gt in self.test_set:
             pred = self.model(rx)
             res = self._decode_pam4(pred)
-            res_map = [gt[i] == res[i] for i in range(len(gt))]
+            res_map = [int(gt.numpy()[i]) == res[i] for i in range(len(gt))]
             right_num = sum(res_map)
             error_num = len(res_map) - right_num
 
-            #show why error occurs
+            # show why error happens
             # if error_num != 0:
             #     tx = tf.squeeze(tx, axis=0)
             #     rx = tf.squeeze(rx, axis=0)
@@ -135,23 +129,23 @@ class BERMetricProcessor(MetricProcessor):
         print("[info]: <BERMetricProcessor> total symbol: " + str(right + error) + " , right decision: " +
               str(right) + " ,error decision: " + str(error) + ", ber: " + str(error / (right + error)))
 
-    def _decode_pam4(self, pred_tx, sig_range: tuple = (-1, 1)):
+    def _decode_pam4(self, pred_tx):
         """
         function used to decode the signal in sig_range (default (-1, 1)) to standard pam4 signal (-3, -1, 1, 3)
         :param pred_tx: tf.Tensor, basically the predicted result of the cleaner
         :return: a list of the decoding results, the length is same with the batch size of pred_tx
         """
         batch_sz = pred_tx.shape[0]
-        sample_index = self.test_set.get_win_size() / 2 - 1
+        sample_index = (self.test_set.sym_win_size * self.test_set.sample_per_symbol) // 2
         res = list()
         for i in range(batch_sz):
             ds = float(pred_tx[i, int(sample_index)].numpy())
 
-            if ds > 2. / 3:
+            if ds > 0.4:
                 de = 3
-            elif 2. / 3 >= ds > 0:
+            elif 0.4 >= ds > 0:
                 de = 1
-            elif 0 >= ds > -2. / 3:
+            elif 0 >= ds > -0.4:
                 de = -1
             else:
                 de = -3
@@ -194,9 +188,9 @@ class BERSoftmaxMetricProcessor(MetricProcessor):
         :param model:
         :param test_set: should be TestDataSetV2
         """
-        if not isinstance(test_set, TestDataSetV2):
+        if not isinstance(test_set, DataSetV2):
             raise TypeError("[Error]: In BERSoftmaxMetricProcessor, the test dataset should be the type {"
-                            "TestDataSetV2}, "
+                            "DataSetV2}, "
                             " but got ", str(type(test_set)))
         super().__init__(metric_type, model, test_set)
 

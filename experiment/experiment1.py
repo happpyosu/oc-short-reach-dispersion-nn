@@ -8,10 +8,11 @@ sys.path.append('../utils')
 from ModelBuilder import ModelBuilder
 from Networks import CriticFactory
 import tensorflow as tf
-from dataset import TrainingDataset, TrainingDataSetV2
+from dataset import DataSetV1
 from tensorflow.keras.losses import MSE
 from plotutils import PlotUtils as pltUtils
-from evalmodel import ModelEvaluator, Metric
+
+
 
 class Experiment1:
     """
@@ -21,7 +22,7 @@ class Experiment1:
         # experiment context info
         self.samples_per_symbol = 16
         self.symbols_win = symbol_win_size
-        self.win_size = self.samples_per_symbol * self.symbols_win
+        self.win_size = self.samples_per_symbol * (self.symbols_win - 1)
 
         # alpha for l2 loss, beta for gan loss, gamma for cyclic-consistency loss
         self.alpha = 1
@@ -44,7 +45,8 @@ class Experiment1:
         self.polluter_critic = self._build_critic()
 
         # tf dataset
-        self.dataset = TrainingDataSetV2(self.win_size, base_dir='../dataset/', train_epoch=self.epoch, batch_size=20)
+        self.dataset = DataSetV1(self.symbols_win, sample_per_sym=self.samples_per_symbol,
+                                 train_epoch=self.epoch, batch_size=20)
 
         # learning rate decay policy
         lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(
@@ -62,9 +64,6 @@ class Experiment1:
 
         # counter
         self.counter = 0
-
-        # model evaluator
-        self.cleaner_evaluator = ModelEvaluator(model=self.cleaner, symbol_win_size=self.symbols_win)
 
     @staticmethod
     def build_cleaner(win_size: int):
@@ -97,8 +96,8 @@ class Experiment1:
     def start_train_task(self):
 
         self.print_train_context()
-
-        for tx, rx in self.dataset:
+        print("\033[1;32m" + '[info]: (Experiment1) training...' + " \033[0m")
+        for tx, rx, _ in self.dataset:
             self.counter += 1
             self.train_one_step(tx, rx)
 
@@ -228,29 +227,12 @@ class Experiment1:
                       " total_polluter_loss: " + str(total_polluter_loss) +
                       " total_cleaner_loss: " + str(total_cleaner_loss))
 
-    def eval_cleaner(self, weight_name: str, save_dir='../save/'):
-        """
-        eval the cleaner using the model evaluator
-        :param weight_name: file_name of the cleaner's weight file
-        :param save_dir: base dir of the weight file
-        :return: None
-        """
-        # load weight first
-        path_to_weight = save_dir + weight_name
-        self.cleaner.load_weights(filepath=path_to_weight)
-
-        # add metric to evaluate
-        self.cleaner_evaluator.add_metric(Metric.BER)
-
-        # do evaluation
-        self.cleaner_evaluator.do_eval()
-
     def print_experiment_context(self):
-        print("===========experiment context===========")
-        print("samples per symbol: " + str(self.samples_per_symbol))
-        print("symbols windows: " + str(self.symbols_win))
-        print("loss weights: " + "alpha: " + str(self.alpha) +
-              " beta: " + str(self.beta) + " gamma: " + str(self.gamma))
+        print("[info]: ===========experiment1 context===========")
+        print("[info]: samples per symbol: " + str(self.samples_per_symbol))
+        print("[info]: symbols windows: " + str(self.symbols_win))
+        print("[info]: loss weights: " + "alpha: " + str(self.alpha) +
+              "[info]: beta: " + str(self.beta) + " gamma: " + str(self.gamma))
 
         print("\n")
         print("cleaner summary: ")
@@ -277,5 +259,5 @@ if __name__ == '__main__':
     exp = Experiment1(symbol_win_size=7)
     exp.print_experiment_context()
     exp.start_train_task()
-    # exp.eval_cleaner('cleaner_200000.h5')
+
 
