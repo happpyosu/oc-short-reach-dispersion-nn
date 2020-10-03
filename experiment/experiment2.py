@@ -14,7 +14,7 @@ class Experiment2:
     """
     Experiment2 plain nn application on short-reach system, in this experiment the
     """
-    def __init__(self, symbol_win_size=21):
+    def __init__(self, symbol_win_size=7):
         # sampling per symbol, typically used for initializing the dataset
         self.samples_per_symbol = 16
 
@@ -78,6 +78,7 @@ class Experiment2:
         start the training task.
         :return: None
         """
+        print("\033[1;32m" + '[info]: (Experiment2) training...' + " \033[0m")
         for _, rx, gt in self.dataset:
             self.counter += 1
             self.train_one_step(rx, gt)

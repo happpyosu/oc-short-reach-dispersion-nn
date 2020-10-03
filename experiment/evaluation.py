@@ -13,11 +13,11 @@ class Evaluation1:
     """
     def __init__(self, weight_filename):
         # model to evaluate
-        self.model = Experiment1.build_cleaner(win_size=96)
+        self.model = Experiment1.build_cleaner(win_size=128)
         self.model.load_weights('../save/' + weight_filename)
 
         # dataset
-        self.dataset = DataSetV1(7, test_mode=True)
+        self.dataset = DataSetV1(9, test_mode=True)
 
         # model evaluator
         self.evaluator = ModelEvaluator(model=self.model, dataset=self.dataset)
@@ -48,4 +48,4 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    Evaluation1('cleaner_160000.h5').eval()
+    Evaluation1('cleaner_325000.h5').eval()

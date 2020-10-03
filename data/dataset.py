@@ -141,6 +141,7 @@ class DataSetV1(AbstractDataset):
 
         # if the dataset is in test mode, the training_times will be set to the len of win_range
         if self.test_mode:
+            print("\033[1;34m" + "[info]: (DataSetV1) Test Mode is On..." + "\033[0m")
             self.training_times = (self.win_range[1] - self.win_range[0] + 1)
             # self.training_times = 10000
         print("\033[1;32m" + "[info]: (DataSetV1) epoch: " + str(self.epoch) +
@@ -242,11 +243,17 @@ class DataSetV2(AbstractDataset):
         # tx signal cache
         super().__init__(batch_size=batch_size, dataset_filename=dataset_filename, test_mode=test_mode)
 
-        # win_range in pos list
-        self.win_range = self._init_win_range()
+        # symbol window size
+        self.sym_win_size = sym_win_size
+
+        # half span
+        self.half_span = int(self.sym_win_size // 2)
 
         # sample per symbol
         self.sample_per_sym = sample_per_sym
+
+        # win_range in pos list
+        self.win_range = self._init_win_range()
 
         # counter
         self.counter = 0
@@ -260,11 +267,12 @@ class DataSetV2(AbstractDataset):
         # step per epoch used for init the decay scheduler
         self.step_per_epoch = (self.win_range[1] - self.win_range[0] + 1) // self.batch_size
 
-        # symbol window size
-        self.sym_win_size = sym_win_size
+        if self.test_mode:
+            print("\033[1;34m" + "[info]: (DataSetV2) Test Mode is On..." + "\033[0m")
+            self.training_times = (self.win_range[1] - self.win_range[0] + 1)
 
-        # half span
-        self.half_span = int(self.sym_win_size // 2)
+        print("\033[1;32m" + "[info]: (DataSetV2) epoch: " + str(self.epoch) +
+              " ,total steps: " + str(self.training_times) + " \033[0m")
 
     def _init_win_range(self):
         """
