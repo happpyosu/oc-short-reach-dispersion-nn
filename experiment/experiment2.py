@@ -46,7 +46,7 @@ class Experiment2:
         builder = ModelBuilder(win_sz)
 
         model = builder \
-            .build('fc', 2, [50, 50]) \
+            .build('fc', 2, [100, 100]) \
             .build('fc', 1, [4], activation_list=['softmax']) \
             .to_model()
 
