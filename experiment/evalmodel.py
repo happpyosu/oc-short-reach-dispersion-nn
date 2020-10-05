@@ -71,6 +71,7 @@ class ModelEvaluator:
                   "but no metric processor is added to the model evaluator")
             return
         else:
+            print("\033[1;32m" + "[info]: (ModelEvaluator) evaluating..." + " \033[0m")
             for processor in self.metric_processor_list:
                 # directly call the processor's process method, since the evaluation context has been built before.
                 processor.process()

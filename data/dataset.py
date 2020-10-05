@@ -305,8 +305,8 @@ class DataSetV2(AbstractDataset):
             right = cursor + self.half_span + 1
             pos = self.pos_list[left:right]
 
-            cut_tx = [self.tx_cache[int(x)] for x in pos]
-            cut_rx = [self.rx_cache[int(x)] for x in pos]
+            cut_tx = [self.tx_cache[int(x) - 1] for x in pos]
+            cut_rx = [self.rx_cache[int(x) - 1] for x in pos]
             cut_gt = [int((self.gt[cursor] + 3) // 2)]
 
             cut_gt = tf.one_hot(cut_gt, 4)

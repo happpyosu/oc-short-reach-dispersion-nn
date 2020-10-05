@@ -33,11 +33,11 @@ class Evaluation2:
     """
     def __init__(self, weight_filename):
         # model to evaluate
-        self.model = Experiment2.build_nn(21)
+        self.model = Experiment2.build_nn(7)
         self.model.load_weights('../save/' + weight_filename)
 
         # dataset
-        self.dataset = DataSetV2(21, test_mode=True)
+        self.dataset = DataSetV2(7, test_mode=True)
 
         # model evaluator
         self.evaluator = ModelEvaluator(model=self.model, dataset=self.dataset)
@@ -48,4 +48,5 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    Evaluation1('cleaner_325000.h5').eval()
+    # Evaluation1('cleaner_325000.h5').eval()
+    Evaluation2('plain_nn_325000.h5').eval()
