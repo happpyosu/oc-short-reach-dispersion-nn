@@ -11,8 +11,7 @@ import tensorflow as tf
 from dataset import DataSetV1
 from tensorflow.keras.losses import MSE
 from plotutils import PlotUtils as pltUtils
-
-
+import gpuutils
 
 class Experiment1:
     """
@@ -256,7 +255,8 @@ class Experiment1:
 
 
 if __name__ == '__main__':
-    exp = Experiment1(symbol_win_size=7)
+    gpuutils.which_gpu_to_use(gpu_index=2)
+    exp = Experiment1(symbol_win_size=15)
     exp.print_experiment_context()
     exp.start_train_task()
 
