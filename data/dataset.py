@@ -65,7 +65,7 @@ class AbstractDataset:
 
     def _init_cache(self):
         # init the cache
-        print("\033[1;32m" + "[info]: (AbstractDataset) start init training dataset cache..." + " \033[0m")
+        print("\033[1;32m" + "[info]: (AbstractDataset) start init abstract dataset cache..." + " \033[0m")
         iterator = self.dataset.as_numpy_iterator()
         # load tx cache
         self.tx_cache = next(iterator)
@@ -76,7 +76,7 @@ class AbstractDataset:
         if len(self.tx_cache) != len(self.rx_cache):
             raise ValueError("The tx length is not consistent with the rx length in training dataset")
 
-        print("\033[1;32m" + "[info]: (AbstractDataset) Done init training cache, "
+        print("\033[1;32m" + "[info]: (AbstractDataset) Done init cache, "
                              "cache length: " + str(len(self.tx_cache)))
 
     def get_batch_size(self):
@@ -101,7 +101,7 @@ class DataSetV1(AbstractDataset):
     """
 
     def __init__(self, sym_win_size: int, sample_per_sym: int = 16, batch_size: int = 20, dataset_filename='*.txt',
-                 train_epoch=100, test_mode=False):
+                 train_epoch=100, test_mode=False, eval_len=65536):
         """
         :param win_sym_size: symbol size for feeding into the model
         :param batch_size: batch size.
@@ -142,10 +142,12 @@ class DataSetV1(AbstractDataset):
         # if the dataset is in test mode, the training_times will be set to the len of win_range
         if self.test_mode:
             print("\033[1;34m" + "[info]: (DataSetV1) Test Mode is On..." + "\033[0m")
-            self.training_times = (self.win_range[1] - self.win_range[0] + 1)
-            # self.training_times = 10000
-        print("\033[1;32m" + "[info]: (DataSetV1) epoch: " + str(self.epoch) +
-              " ,total steps: " + str(self.training_times) + " \033[0m")
+            print("\033[1;34m" + "[info]: (DataSetV1) total evaluation step " + str(eval_len) + "\033[0m")
+            self.training_times = eval_len
+        else:
+            print("\033[1;34m" + "[info]: (DataSetV1) Training Mode is On..." + "\033[0m")
+            print("\033[1;32m" + "[info]: (DataSetV1) epochs: " + str(self.epoch) +
+                  " ,total steps: " + str(self.training_times) + " \033[0m")
 
     def _init_win_range(self):
         """

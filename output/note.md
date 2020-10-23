@@ -1,0 +1,1 @@
+The middle output will be put here.

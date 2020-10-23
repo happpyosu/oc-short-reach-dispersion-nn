@@ -168,14 +168,16 @@ class AVGMSEMetricProcessor(MetricProcessor):
         do process the average accuracy on the test dataset
         :return:
         """
-        avg_mse = []
+        inc = 0
+        mse = 0
         for tx, rx, _ in self.test_set:
             # no need to check gt
+            inc += 1
             pred_tx = self.model(rx)
-            mse = tf.reduce_mean((tx - pred_tx) ** 2, keepdims=True).numpy()
-            avg_mse.append(mse)
+            mse += tf.reduce_mean((tx - pred_tx) ** 2, keepdims=True).numpy()
 
-        print("[info]: <AVGMSEMetricProcessor> avg_mse_list: " + str(avg_mse))
+        mse /= inc
+        print("[info]: <AVGMSEMetricProcessor> avg_mse: " + str(mse))
 
 
 class BERSoftmaxMetricProcessor(MetricProcessor):

@@ -21,6 +21,7 @@ class Evaluation1:
 
         # model evaluator
         self.evaluator = ModelEvaluator(model=self.model, dataset=self.dataset)
+        self.evaluator.add_metric(Metric.AVG_MSE)
         self.evaluator.add_metric(Metric.BER)
 
     def eval(self):
@@ -41,7 +42,8 @@ class Evaluation2:
 
         # model evaluator
         self.evaluator = ModelEvaluator(model=self.model, dataset=self.dataset)
-        self.evaluator.add_metric(Metric.BER_SOFTMAX)
+        # self.evaluator.add_metric(Metric.BER_SOFTMAX)
+        self.evaluator.add_metric(Metric.AVG_MSE)
 
     def eval(self):
         self.evaluator.do_eval()
