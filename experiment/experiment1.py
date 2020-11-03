@@ -25,8 +25,8 @@ class Experiment1:
 
         # alpha for l2 loss, beta for gan loss, gamma for cyclic-consistency loss
         self.alpha = 1
-        self.beta = 0.001
-        self.gamma = 0.1
+        self.beta = 0.01
+        self.gamma = 1
 
         # training epoch
         self.epoch = 100
@@ -104,6 +104,10 @@ class Experiment1:
                 self.cleaner.save_weights(filepath='../save/cleaner_' + str(self.counter) + '.h5')
                 self.polluter.save_weights(filepath='../save/polluter_' + str(self.counter) + '.h5')
                 self.output_middle_result(counter=self.counter)
+
+        self.cleaner.save_weights(filepath='../save/cleaner_' + 'final' + '.h5')
+        self.polluter.save_weights(filepath='../save/polluter_' + 'final' + '.h5')
+        self.output_middle_result(counter=self.counter)
 
     def print_train_context(self):
         with open('../save/train_context.txt', 'w') as file:

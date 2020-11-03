@@ -142,11 +142,11 @@ class BERMetricProcessor(MetricProcessor):
         for i in range(batch_sz):
             ds = float(pred_tx[i, int(sample_index)].numpy())
 
-            if ds > 0.4:
+            if ds > 0.4119:
                 de = 3
-            elif 0.4 >= ds > 0:
+            elif 0.4119 >= ds > 0:
                 de = 1
-            elif 0 >= ds > -0.4:
+            elif 0 >= ds > -0.4119:
                 de = -1
             else:
                 de = -3
