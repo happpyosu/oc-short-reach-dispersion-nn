@@ -133,7 +133,7 @@ class Experiment1:
         pltUtils.plot_wave_tensors(tx, rx, clean_wave, dirty_wave, legend_list=['tx', 'rx', 'clean-wave', 'dirty-wave'],
                                    is_save_file=True, file_name=str(self.counter) + '.jpg')
 
-    # @tf.function
+    @tf.function
     def train_one_step(self, tx, rx):
         with tf.GradientTape(watch_accessed_variables=False) as d1_tape, \
                 tf.GradientTape(watch_accessed_variables=False) as d2_tape:
