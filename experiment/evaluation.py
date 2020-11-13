@@ -12,12 +12,16 @@ class Evaluation1:
     The Evaluation of the Experiment1
     """
     def __init__(self, weight_filename):
+
+        # winsize
+        win_sz = 19
+
         # model to evaluate
-        self.model = Experiment1.build_cleaner(win_size=16 * 18)
+        self.model = Experiment1.build_cleaner(win_size=16 * (win_sz - 1))
         self.model.load_weights('../save/' + weight_filename)
 
         # dataset
-        self.dataset = DataSetV1(19, sample_per_sym=16, test_mode=True)
+        self.dataset = DataSetV1(win_sz, sample_per_sym=16, test_mode=True)
 
         # model evaluator
         self.evaluator = ModelEvaluator(model=self.model, dataset=self.dataset)
@@ -50,5 +54,5 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    Evaluation1('cleaner_160000.h5').eval()
+    Evaluation1('cleaner_final.h5').eval()
     # Evaluation2('plain_nn_160000.h5').eval()

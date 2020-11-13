@@ -13,6 +13,7 @@ from tensorflow.keras.losses import MSE
 from plotutils import PlotUtils as pltUtils
 import gpuutils
 
+
 class Experiment1:
     """
         Experiment one: training a bidirectional translation model for short-reach system
@@ -25,7 +26,7 @@ class Experiment1:
 
         # alpha for l2 loss, beta for gan loss, gamma for cyclic-consistency loss
         self.alpha = 1
-        self.beta = 0.01
+        self.beta = 0.001
         self.gamma = 1
 
         # training epoch
@@ -134,13 +135,11 @@ class Experiment1:
 
     @tf.function
     def train_one_step(self, tx, rx):
-        with tf.GradientTape(watch_accessed_variables=False) as polluter_tape, \
-                tf.GradientTape(watch_accessed_variables=False) as cleaner_tape, \
-                tf.GradientTape(watch_accessed_variables=False) as d1_tape, \
+        with tf.GradientTape(watch_accessed_variables=False) as d1_tape, \
                 tf.GradientTape(watch_accessed_variables=False) as d2_tape:
             # do watch tf model
-            polluter_tape.watch(self.polluter.trainable_variables)
-            cleaner_tape.watch(self.cleaner.trainable_variables)
+            # polluter_tape.watch(self.polluter.trainable_variables)
+            # cleaner_tape.watch(self.cleaner.trainable_variables)
             d1_tape.watch(self.polluter_critic.trainable_variables)
             d2_tape.watch(self.cleaner_critic.trainable_variables)
 
@@ -167,7 +166,9 @@ class Experiment1:
             self.cleaner_critic_optimizer.apply_gradients(zip(gradient_of_cleaner_critic,
                                                               self.cleaner_critic.trainable_variables))
 
-            # -----------------------------------------Step 2: train polluter-------------------------------------------
+        with tf.GradientTape() as polluter_tape, tf.GradientTape() as cleaner_tape:
+
+            # -----------------------------------Step 2: polluter -> cleaner (cycle1)-----------------------------------
             # let polluter pollute the tx signal
             dirty_wave = self.polluter(tx, training=True)
 
@@ -193,9 +194,12 @@ class Experiment1:
 
             # update gradient
             gradients_of_polluter = polluter_tape.gradient(total_polluter_loss, self.polluter.trainable_variables)
+            gradients_of_cleaner = cleaner_tape.gradient(total_polluter_loss, self.cleaner.trainable_variables)
             self.polluter_optimizer.apply_gradients(zip(gradients_of_polluter, self.polluter.trainable_variables))
+            self.cleaner_optimizer.apply_gradients(zip(gradients_of_cleaner, self.cleaner.trainable_variables))
 
-            # -----------------------------------------Step 3: train cleaner--------------------------------------------
+        with tf.GradientTape() as polluter_tape, tf.GradientTape() as cleaner_tape:
+            # -----------------------------------------Step 3: polluter -> cleaner (cycle2)----------------------------
             # let the cleaner clean the rx signal
             clean_wave = self.cleaner(rx, training=True)
 
@@ -220,8 +224,9 @@ class Experiment1:
                                  self.beta * cleaner_critic_loss + self.gamma * cleaner_cyclic_loss
 
             gradients_of_cleaner = cleaner_tape.gradient(total_cleaner_loss, self.cleaner.trainable_variables)
+            gradients_of_polluter = polluter_tape.gradient(total_polluter_loss, self.polluter.trainable_variables)
             self.cleaner_optimizer.apply_gradients(zip(gradients_of_cleaner, self.cleaner.trainable_variables))
-
+            self.polluter_optimizer.apply_gradients(zip(gradients_of_polluter, self.polluter.trainable_variables))
             # -----------------------------------------Step 4: print some info------------------------------------------
             if self.counter % 20 == 0:
                 print("[info]: counter: " + str(self.counter) +
