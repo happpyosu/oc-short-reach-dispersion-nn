@@ -133,7 +133,7 @@ class Experiment1:
         pltUtils.plot_wave_tensors(tx, rx, clean_wave, dirty_wave, legend_list=['tx', 'rx', 'clean-wave', 'dirty-wave'],
                                    is_save_file=True, file_name=str(self.counter) + '.jpg')
 
-    @tf.function
+    # @tf.function
     def train_one_step(self, tx, rx):
         with tf.GradientTape(watch_accessed_variables=False) as d1_tape, \
                 tf.GradientTape(watch_accessed_variables=False) as d2_tape:
@@ -199,7 +199,7 @@ class Experiment1:
             self.cleaner_optimizer.apply_gradients(zip(gradients_of_cleaner, self.cleaner.trainable_variables))
 
         with tf.GradientTape() as polluter_tape, tf.GradientTape() as cleaner_tape:
-            # -----------------------------------------Step 3: polluter -> cleaner (cycle2)----------------------------
+            # -----------------------------------------Step 3: cleaner -> polluter (cycle2)-----------------------------
             # let the cleaner clean the rx signal
             clean_wave = self.cleaner(rx, training=True)
 
@@ -224,7 +224,7 @@ class Experiment1:
                                  self.beta * cleaner_critic_loss + self.gamma * cleaner_cyclic_loss
 
             gradients_of_cleaner = cleaner_tape.gradient(total_cleaner_loss, self.cleaner.trainable_variables)
-            gradients_of_polluter = polluter_tape.gradient(total_polluter_loss, self.polluter.trainable_variables)
+            gradients_of_polluter = polluter_tape.gradient(total_cleaner_loss, self.polluter.trainable_variables)
             self.cleaner_optimizer.apply_gradients(zip(gradients_of_cleaner, self.cleaner.trainable_variables))
             self.polluter_optimizer.apply_gradients(zip(gradients_of_polluter, self.polluter.trainable_variables))
             # -----------------------------------------Step 4: print some info------------------------------------------
@@ -265,7 +265,7 @@ class Experiment1:
 
 if __name__ == '__main__':
     gpuutils.which_gpu_to_use(gpu_index=2)
-    exp = Experiment1(symbol_win_size=15)
+    exp = Experiment1(symbol_win_size=19)
     exp.print_experiment_context()
     exp.start_train_task()
 
