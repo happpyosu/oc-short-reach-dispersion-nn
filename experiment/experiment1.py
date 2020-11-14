@@ -46,7 +46,7 @@ class Experiment1:
 
         # tf dataset
         self.dataset = DataSetV1(self.symbols_win, sample_per_sym=self.samples_per_symbol,
-                                 train_epoch=self.epoch, batch_size=20)
+                                 train_epoch=self.epoch, batch_size=40)
 
         # learning rate decay policy
         lr_schedule = tf.keras.optimizers.schedules.InverseTimeDecay(

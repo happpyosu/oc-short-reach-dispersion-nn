@@ -14,7 +14,7 @@ class Evaluation1:
     def __init__(self, weight_filename):
 
         # winsize
-        win_sz = 19
+        win_sz = 23
 
         # model to evaluate
         self.model = Experiment1.build_cleaner(win_size=16 * (win_sz - 1))
@@ -54,5 +54,5 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    Evaluation1('cleaner_final.h5').eval()
+    Evaluation1('cleaner_250000.h5').eval()
     # Evaluation2('plain_nn_160000.h5').eval()
