@@ -101,7 +101,7 @@ class DataSetV1(AbstractDataset):
     """
 
     def __init__(self, sym_win_size: int, sample_per_sym: int = 16, batch_size: int = 20, dataset_filename='*.txt',
-                 train_epoch=100, test_mode=False, eval_len=10000):
+                 train_epoch=100, test_mode=False, eval_len=50000):
         """
         :param win_sym_size: symbol size for feeding into the model
         :param batch_size: batch size.
