@@ -1,12 +1,12 @@
 import sys
 import tensorflow as tf
-from dataset import DataSetV1
 
 sys.path.append('../data')
 sys.path.append('../networks')
 sys.path.append('../test')
 sys.path.append('../utils')
 
+from dataset import DataSetV1
 from ModelBuilder import ModelBuilder
 import gpuutils
 
