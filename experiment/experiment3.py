@@ -52,7 +52,7 @@ class Experiment3:
         model = builder \
             .build('fc', 4, [25, 50, 100, 200]) \
             .build('fc', 4, [200, 100, 50, 25]) \
-            .build('fc', 1, [1], activation_list=['none']) \
+            .build('fc', 1, [1], activation_list=['tanh']) \
             .to_model()
 
         return model
@@ -67,7 +67,8 @@ class Experiment3:
         with tf.GradientTape() as tape:
             pred_tx = self.cleaner(rx, training=True)
             l2_loss = tf.reduce_mean((pred_tx - tx) ** 2)
-
+            if self.counter % 500 == 0:
+                print('l2-loss', l2_loss)
             grad = tape.gradient(l2_loss, self.cleaner.trainable_variables)
             self.cleaner_optimizer.apply_gradients(zip(grad, self.cleaner.trainable_variables))
 
@@ -76,6 +77,7 @@ class Experiment3:
         for tx, rx, _ in self.dataset:
             self.counter += 1
             tx = tx[:, self.sample_index]
+            tx = tf.expand_dims(tx, axis=1)
             self.train_one_step(tx, rx)
 
             if self.counter % 5000 == 0:

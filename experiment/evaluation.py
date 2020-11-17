@@ -44,6 +44,9 @@ class Evaluation3:
         # model
         self.model = Experiment3.build_cleaner(win_size=16 * (win_sz - 1))
 
+        # load weight
+        self.model.load_weights('../save/' + weight_filename)
+
         # dataset
         self.dataset = DataSetV1(win_sz, sample_per_sym=16, test_mode=True)
 
