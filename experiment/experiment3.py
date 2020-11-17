@@ -10,10 +10,12 @@ from dataset import DataSetV1
 from ModelBuilder import ModelBuilder
 import gpuutils
 
+
 class Experiment3:
     """
     The experiment3: using only on output node to perform the signal regression.
     """
+
     def __init__(self, symbol_win_size=7):
         self.samples_per_symbol = 16
         self.symbols_win = symbol_win_size
@@ -87,5 +89,5 @@ class Experiment3:
 
 if __name__ == '__main__':
     gpuutils.which_gpu_to_use(gpu_index=2)
-    exp = Experiment3(symbol_win_size=19)
+    exp = Experiment3(symbol_win_size=15)
     exp.start_train_task()
