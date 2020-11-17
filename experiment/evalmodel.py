@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('../utils')
 sys.path.append('../data')
 
@@ -30,11 +31,15 @@ class Metric(Enum):
     # bit error rate, directly using the classifier to do symbol decision
     BER_SOFTMAX = 2
 
+    # BER REG
+    BER_REGRESSION = 3
+
 
 class ModelEvaluator:
     """
     Model Evaluator class is used to eval a trained nn model using several test set on different metrics.
     """
+
     def __init__(self, model: tf.keras.Model, dataset):
 
         """
@@ -61,7 +66,10 @@ class ModelEvaluator:
         elif metric == Metric.AVG_MSE:
             self.metric_processor_list.append(AVGMSEMetricProcessor(Metric.AVG_MSE.value, self.model, self.testset))
         elif metric == Metric.BER_SOFTMAX:
-            self.metric_processor_list.append(BERSoftmaxMetricProcessor(Metric.BER_SOFTMAX.value, self.model, self.testset))
+            self.metric_processor_list.append(
+                BERSoftmaxMetricProcessor(Metric.BER_SOFTMAX.value, self.model, self.testset))
+        elif metric == Metric.BER_REGRESSION:
+            self.metric_processor_list.append(BERRegressionMetricProcessor(Metric.BER_REGRESSION.value, self.model, self.testset))
 
         return self
 
@@ -81,6 +89,7 @@ class MetricProcessor:
     """
     base class of metric processor for evaluating different metrics
     """
+
     def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
         self.metric_type = metric_type
         self.model = model
@@ -98,6 +107,7 @@ class BERMetricProcessor(MetricProcessor):
     """
     ber metric processor, should pass DataSetV2 to do the evaluation
     """
+
     def __init__(self, metric_type: int, model: tf.keras.Model, test_set: DataSetV2):
         # directly call the super class to init the test context.
         super().__init__(metric_type, model, test_set)
@@ -160,6 +170,7 @@ class AVGMSEMetricProcessor(MetricProcessor):
     """
     AVG_MSE metric processor
     """
+
     def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
         super().__init__(metric_type, model, test_set)
 
@@ -180,10 +191,86 @@ class AVGMSEMetricProcessor(MetricProcessor):
         print("[info]: <AVGMSEMetricProcessor> avg_mse: " + str(mse))
 
 
+class BERRegressionMetricProcessor(MetricProcessor):
+    """
+    BER Regression processor
+    """
+
+    def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
+        """
+
+        :param metric_type:
+        :param model:
+        :param test_set: should be TestDataSetV2
+        """
+        if not isinstance(test_set, DataSetV1):
+            raise TypeError("[Error]: In BERSoftmaxMetricProcessor, the test dataset should be the type {"
+                            "DataSetV1}, "
+                            " but got ", str(type(test_set)))
+        super().__init__(metric_type, model, test_set)
+
+    def process(self):
+        """
+        do process the test dataset and calculate the ber metric
+        :return: the BER performance of the model
+        """
+        right = 0
+        error = 0
+        for tx, rx, gt in self.test_set:
+            pred = self.model(rx)
+            sample_index = ((self.test_set.sym_win_size - 1) * self.test_set.sample_per_symbol) // 2
+            gt_pred = tx[0, sample_index]
+            res = self._decode_pam4(pred)
+
+            res_map = [int(gt.numpy()[i]) == res[i] for i in range(len(gt))]
+            right_num = sum(res_map)
+            error_num = len(res_map) - right_num
+
+            # show why error happens
+            # if error_num != 0:
+            #     tx = tf.squeeze(tx, axis=0)
+            #     rx = tf.squeeze(rx, axis=0)
+            #     pred = tf.squeeze(pred, axis=0)
+            #     PlotUtils.plot_wave_tensors(tx, rx, pred, legend_list=['tx', 'rx', 'clean_wave'])
+
+            # ber statistics
+            right += right_num
+            error += error_num
+
+        print("[info]: <BERMetricProcessor> total symbol: " + str(right + error) + " , right decision: " +
+              str(right) + " ,error decision: " + str(error) + ", ber: " + str(error / (right + error)))
+
+    def _decode_pam4(self, pred_tx):
+        """
+        function used to decode the signal in sig_range (default (-1, 1)) to standard pam4 signal (-3, -1, 1, 3)
+        :param pred_tx: tf.Tensor, basically the predicted result of the cleaner
+        :return: a list of the decoding results, the length is same with the batch size of pred_tx
+        """
+        batch_sz = pred_tx.shape[0]
+        sample_index = 0
+        res = list()
+        for i in range(batch_sz):
+            ds = float(pred_tx[i, int(sample_index)].numpy())
+
+            if ds > 0.4119:
+                de = 3
+            elif 0.4119 >= ds > 0:
+                de = 1
+            elif 0 >= ds > -0.4119:
+                de = -1
+            else:
+                de = -3
+
+            res.append(de)
+
+        return res
+
+
 class BERSoftmaxMetricProcessor(MetricProcessor):
     """
     BER Softmax Metric Processor
     """
+
     def __init__(self, metric_type: int, model: tf.keras.Model, test_set):
         """
 
@@ -219,8 +306,3 @@ class BERSoftmaxMetricProcessor(MetricProcessor):
 
         print("[info]: <BERSoftmaxMetricProcessor> total symbol: " + str(right + error) + " , right decision: " +
               str(right) + " ,error decision: " + str(error) + ", ber: " + str(error / (right + error)))
-
-
-
-
-

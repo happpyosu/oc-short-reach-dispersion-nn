@@ -66,7 +66,7 @@ class Experiment3:
         """
         with tf.GradientTape() as tape:
             pred_tx = self.cleaner(rx, training=True)
-            l2_loss = tf.reduce_mean(pred_tx - tx)
+            l2_loss = tf.reduce_mean((pred_tx - tx) ** 2)
 
             grad = tape.gradient(l2_loss, self.cleaner.trainable_variables)
             self.cleaner_optimizer.apply_gradients(zip(grad, self.cleaner.trainable_variables))
@@ -84,6 +84,6 @@ class Experiment3:
 
 
 if __name__ == '__main__':
-    gpuutils.which_gpu_to_use(gpu_index=2)
+    # gpuutils.which_gpu_to_use(gpu_index=2)
     exp = Experiment3(symbol_win_size=19)
     exp.start_train_task()
