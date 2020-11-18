@@ -101,7 +101,7 @@ class Experiment1:
             self.counter += 1
             self.train_one_step(tx, rx)
 
-            if self.counter % 5000 == 0:
+            if self.counter % 10000 == 0:
                 self.cleaner.save_weights(filepath='../save/cleaner_' + str(self.counter) + '.h5')
                 self.polluter.save_weights(filepath='../save/polluter_' + str(self.counter) + '.h5')
                 self.output_middle_result(counter=self.counter)
@@ -264,7 +264,7 @@ class Experiment1:
 
 
 if __name__ == '__main__':
-    gpuutils.which_gpu_to_use(gpu_index=2)
+    gpuutils.which_gpu_to_use(gpu_index=0)
     exp = Experiment1(symbol_win_size=19)
     exp.print_experiment_context()
     exp.start_train_task()
