@@ -26,8 +26,8 @@ class Experiment1:
 
         # alpha for l2 loss, beta for gan loss, gamma for cyclic-consistency loss
         self.alpha = 1
-        self.beta = 0.001
-        self.gamma = 1
+        self.beta = 0
+        self.gamma = 0
 
         # training epoch
         self.epoch = 100
