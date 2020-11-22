@@ -8,11 +8,11 @@ sys.path.append('../utils')
 from ModelBuilder import ModelBuilder
 import tensorflow as tf
 from dataset import DataSetV2
-
+import gpuutils
 
 class Experiment2:
     """
-    Experiment2 plain nn application on short-reach system, in this experiment the
+    Experiment2 plain nn with a softmax classifier on short-reach system
     """
     def __init__(self, symbol_win_size=7):
         # sampling per symbol, typically used for initializing the dataset
@@ -28,7 +28,7 @@ class Experiment2:
         self.model = self.build_nn(self.win_size)
 
         # the dataset
-        self.dataset = DataSetV2(self.win_size, batch_size=20)
+        self.dataset = DataSetV2(self.win_size, batch_size=40)
 
         # the optimizer
         self.optimizer = tf.keras.optimizers.Adam(1e-4)
@@ -91,5 +91,6 @@ class Experiment2:
 
 
 if __name__ == '__main__':
-    e = Experiment2()
+    gpuutils.which_gpu_to_use(gpu_index=1)
+    e = Experiment2(symbol_win_size=19)
     e.start_train_task()
