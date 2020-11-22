@@ -86,6 +86,9 @@ class Experiment2:
             if self.counter % 5000 == 0:
                 self.save_model()
 
+        # save the final weights
+        self.model.save_weights(filepath='../save/cleaner_' + 'final' + '.h5')
+
     def save_model(self):
         self.model.save('../save/' + 'plain_nn_' + str(self.counter) + '.h5')
 
