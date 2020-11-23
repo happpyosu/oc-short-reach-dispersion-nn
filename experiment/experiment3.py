@@ -89,5 +89,5 @@ class Experiment3:
 
 if __name__ == '__main__':
     gpuutils.which_gpu_to_use(gpu_index=2)
-    exp = Experiment3(symbol_win_size=19)
+    exp = Experiment3(symbol_win_size=7)
     exp.start_train_task()
