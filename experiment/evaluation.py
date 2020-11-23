@@ -64,22 +64,26 @@ class Evaluation2:
     The Evaluation of the Experiment2
     """
     def __init__(self, weight_filename):
+        # win size
+        win_sz = 11
+
         # model to evaluate
-        self.model = Experiment2.build_nn(21)
+        self.model = Experiment2.build_nn(win_sz)
         self.model.load_weights('../save/' + weight_filename)
 
         # dataset
-        self.dataset = DataSetV2(21, test_mode=True)
+        self.dataset = DataSetV2(win_sz, test_mode=True)
 
         # model evaluator
         self.evaluator = ModelEvaluator(model=self.model, dataset=self.dataset)
-        # self.evaluator.add_metric(Metric.BER_SOFTMAX)
-        self.evaluator.add_metric(Metric.AVG_MSE)
+        self.evaluator.add_metric(Metric.BER_SOFTMAX)
+        # self.evaluator.add_metric(Metric.AVG_MSE)
 
     def eval(self):
         self.evaluator.do_eval()
 
 
 if __name__ == '__main__':
-    # Evaluation3('cleaner_final.h5').eval()
     Evaluation1('cleaner_final.h5').eval()
+    # Evaluation2('cleaner_final.h5').eval()
+    # Evaluation3('cleaner_final.h5').eval()
