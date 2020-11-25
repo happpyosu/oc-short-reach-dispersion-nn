@@ -95,5 +95,5 @@ class Experiment2:
 
 if __name__ == '__main__':
     gpuutils.which_gpu_to_use(gpu_index=0)
-    e = Experiment2(symbol_win_size=7)
+    e = Experiment2(symbol_win_size=11)
     e.start_train_task()
