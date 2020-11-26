@@ -52,10 +52,10 @@ class AbstractDataset:
         self._init_cache()
 
         # for the small-sized dataset (only 4096 symbols)
-        # self.tx_cache = self.tx_cache[0:4096 * self.sample_per_symbol]
-        # self.rx_cache = self.rx_cache[0:4096 * self.sample_per_symbol]
-        # self.pos_list = self.pos_list[0:4096]
-        # self.gt = self.gt[0:4096]
+        self.tx_cache = self.tx_cache[0:30000 * self.sample_per_symbol]
+        self.rx_cache = self.rx_cache[0:30000 * self.sample_per_symbol]
+        self.pos_list = self.pos_list[0:30000]
+        self.gt = self.gt[0:30000]
 
     @staticmethod
     def str2float(x: np.ndarray):
