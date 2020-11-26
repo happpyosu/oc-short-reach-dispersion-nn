@@ -264,8 +264,8 @@ class Experiment1:
 
 
 if __name__ == '__main__':
-    gpuutils.which_gpu_to_use(gpu_index=2)
-    exp = Experiment1(symbol_win_size=23)
+    gpuutils.which_gpu_to_use(gpu_index=0)
+    exp = Experiment1(symbol_win_size=19)
     exp.print_experiment_context()
     exp.start_train_task()
 
