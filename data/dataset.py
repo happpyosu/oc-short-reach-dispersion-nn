@@ -57,6 +57,12 @@ class AbstractDataset:
         self.pos_list = self.pos_list[0:30000]
         self.gt = self.gt[0:30000]
 
+        # # for eval
+        # self.tx_cache = self.tx_cache[(30000 * self.sample_per_symbol):(60000 * self.sample_per_symbol)]
+        # self.rx_cache = self.rx_cache[(30000 * self.sample_per_symbol):(60000 * self.sample_per_symbol)]
+        # self.pos_list = self.pos_list[30000:60000]
+        # self.gt = self.gt[30000:60000]
+
     @staticmethod
     def str2float(x: np.ndarray):
         """
@@ -107,7 +113,7 @@ class DataSetV1(AbstractDataset):
     """
 
     def __init__(self, sym_win_size: int, sample_per_sym: int = 16, batch_size: int = 20, dataset_filename='*.txt',
-                 train_epoch=100, test_mode=False, eval_len=60000):
+                 train_epoch=100, test_mode=False, eval_len=30000):
         """
         :param win_sym_size: symbol size for feeding into the model
         :param batch_size: batch size.
