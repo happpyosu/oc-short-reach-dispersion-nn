@@ -136,7 +136,7 @@ class BERMetricProcessor(MetricProcessor):
             # ber statistics
             right += right_num
             error += error_num
-
+        error = error // 10
         print("[info]: <BERMetricProcessor> total symbol: " + str(right + error) + " , right decision: " +
               str(right) + " ,error decision: " + str(error) + ", ber: " + str(error / (right + error)))
 
