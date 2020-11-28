@@ -83,6 +83,6 @@ class Evaluation2:
 
 
 if __name__ == '__main__':
-    # Evaluation1('cleaner_final.h5').eval()
-    Evaluation2('cleaner_final.h5').eval()
+    Evaluation1('cleaner_final.h5').eval()
+    # Evaluation2('cleaner_final.h5').eval()
     # Evaluation3('cleaner_final.h5').eval()
