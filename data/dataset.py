@@ -63,6 +63,12 @@ class AbstractDataset:
         # self.pos_list = self.pos_list[30000:60000]
         # self.gt = self.gt[30000:60000]
 
+        # # for eval 45000 test samples
+        # self.tx_cache = self.tx_cache[(15000 * self.sample_per_symbol):(60000 * self.sample_per_symbol)]
+        # self.rx_cache = self.rx_cache[(15000 * self.sample_per_symbol):(60000 * self.sample_per_symbol)]
+        # self.pos_list = self.pos_list[15000:60000]
+        # self.gt = self.gt[15000:60000]
+
     @staticmethod
     def str2float(x: np.ndarray):
         """
